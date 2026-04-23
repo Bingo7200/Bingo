@@ -1,0 +1,14 @@
+{
+  "name": "datalearn",
+  "version": "1.0.0",
+  "description": "商务数据分析在线教育平台",
+  "private": true,
+  "scripts": {
+    "dev": "npx wrangler pages dev . --d1=DB --local",
+    "deploy": "npx wrangler pages deploy .",
+    "db:init": "npx wrangler d1 execute datalearn-db --local --file=./schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
