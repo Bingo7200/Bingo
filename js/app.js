@@ -1541,8 +1541,8 @@ function renderQuizQuestion() {
             if (isSelected) optClass += ' quiz__option--selected';
             if (quiz.results[quiz.currentIndex] !== undefined) {
               optClass += ' quiz__option--disabled';
-              if (i === q.correctIndex) optClass += ' quiz__option--correct';
-              if (isSelected && i !== q.correctIndex) optClass += ' quiz__option--wrong';
+              if (i === q.correct) optClass += ' quiz__option--correct';
+              if (isSelected && i !== q.correct) optClass += ' quiz__option--wrong';
             }
             return `
               <div class="${optClass}" data-action="select-option" data-index="${i}">
@@ -1558,7 +1558,7 @@ function renderQuizQuestion() {
             <h4 class="quiz__explanation-title">
               ${quiz.results[quiz.currentIndex] ? '\u{2705} 回答正确' : '\u{274C} 回答错误'}
             </h4>
-            <p class="quiz__explanation-text">${escapeHtml(q.explanation || '正确答案是 ' + String.fromCharCode(65 + q.correctIndex))}</p>
+            <p class="quiz__explanation-text">${escapeHtml(q.explanation || '正确答案是 ' + String.fromCharCode(65 + q.correct))}</p>
           </div>
         ` : ''}
 
@@ -2147,7 +2147,7 @@ function handleSubmitQuiz() {
   }
 
   // 评判当前题目
-  const isCorrect = selectedAnswer === q.correctIndex;
+  const isCorrect = selectedAnswer === q.correct;
   quiz.results[quiz.currentIndex] = isCorrect;
 
   refreshQuizDisplay();
