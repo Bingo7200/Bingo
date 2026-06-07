@@ -202,8 +202,8 @@
       baseColor = this.isCorrect ? COLORS.correct : COLORS.wrong;
       glowColor = this.isCorrect ? COLORS.correctGlow : COLORS.wrongGlow;
     } else {
-      baseColor = COLORS.gold;
-      glowColor = '#ffecb3';
+      baseColor = '#1a237e';  // 深蓝色方块
+      glowColor = '#3949ab';
     }
     var grad = ctx.createLinearGradient(bx, by, bx, by + bh);
     grad.addColorStop(0, baseColor);
@@ -252,8 +252,6 @@
     this.frame = 0;       // 动画帧
     this.frameTimer = 0;
     this.lives = 3;
-    this.hp = 100;
-    this.maxHp = 100;
     this.invincible = 0;  // 无敌时间（帧数）
   }
 
@@ -510,7 +508,7 @@
     var gap = 20;
     var totalW = count * bw + (count - 1) * gap;
     var startX = (c.width - totalW) / 2;
-    var baseY = c.height * 0.55;
+    var baseY = c.height * 0.65;
 
     this.blocks = [];
     for (var i = 0; i < count; i++) {
@@ -555,8 +553,6 @@
     var groundY = c.height - 50;
     this.player = new Player(c.width / 2 - 14, groundY - 40);
     this.player.lives = 3;
-    this.player.hp = 100;
-    this.player.maxHp = 100;
     this._spawnBlocks();
     this._loop();
   };
@@ -664,11 +660,11 @@
           setTimeout(function () { self._nextQuestion(); }, 600);
         } else {
           // 错误答案
-          this.player.hp -= 25;
+          this.player.lives--;
           this.player.invincible = 60; // 1秒无敌
           this._emitParticles(b.x + b.w / 2, b.y + b.h / 2, 'wrong');
           this.onWrong(this.currentQ);
-          if (this.player.hp <= 0) {
+          if (this.player.lives <= 0) {
             this.state = 'gameover';
             this.onComplete(this.score, this.totalQ);
           }
@@ -735,30 +731,14 @@
     ctx.textBaseline = 'top';
     ctx.fillText('第 ' + (engine.currentQ + 1) + ' / ' + engine.totalQ + ' 题', 12, 12);
 
-    // 血条 - 右上
-    var hpBarW = 120, hpBarH = 14;
-    var hpBarX = c.width - 12 - hpBarW;
-    var hpBarY = 12;
-    var hpRatio = Math.max(0, engine.player.hp / engine.player.maxHp);
-    // 血条背景
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    roundRect(ctx, hpBarX, hpBarY, hpBarW, hpBarH, 7);
-    ctx.fill();
-    // 血条前景（红色渐变）
-    if (hpRatio > 0) {
-      var hpGrad = ctx.createLinearGradient(hpBarX, hpBarY, hpBarX, hpBarY + hpBarH);
-      hpGrad.addColorStop(0, '#ff5252');
-      hpGrad.addColorStop(1, '#d32f2f');
-      ctx.fillStyle = hpGrad;
-      roundRect(ctx, hpBarX, hpBarY, Math.max(hpBarH, hpBarW * hpRatio), hpBarH, 7);
-      ctx.fill();
-    }
-    // 血条文字
-    ctx.fillStyle = COLORS.white;
-    ctx.font = 'bold 10px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(engine.player.hp + '/' + engine.player.maxHp, hpBarX + hpBarW / 2, hpBarY + hpBarH / 2);
+    // 生命值 - 右上（红心）
+    ctx.fillStyle = COLORS.wrong;
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    var hearts = '';
+    for (var hi = 0; hi < (engine.player ? engine.player.lives : 3); hi++) hearts += '\u2764\uFE0F ';
+    ctx.fillText(hearts, c.width - 12, 12);
 
     // 得分 - 右上（血条下方）
     ctx.fillStyle = COLORS.highlight;
@@ -1074,7 +1054,9 @@
       canvas.height = 500;
       canvas.style.display = 'block';
       canvas.style.width = '100%';
+      canvas.style.maxWidth = '800px';
       canvas.style.height = 'auto';
+      canvas.style.margin = '0 auto';
       canvas.style.borderRadius = '12px';
       canvas.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
       container.appendChild(canvas);

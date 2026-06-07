@@ -109,8 +109,7 @@
     this.h = 36;
     this.speed = 5;
     this.shootCooldown = 0;
-    this.hp = 100;
-    this.maxHp = 100;
+    this.lives = 3;
     this.invincible = 0;
     this.engineFrame = 0;
   }
@@ -213,6 +212,7 @@
     this.active = true;
     this.hovered = false;
     this.revealed = false;
+    this.attackable = false;
     this.label = String.fromCharCode(65 + index); // A,B,C,D
   }
 
@@ -220,6 +220,9 @@
     this.y += this.vy;
     if (this.y > window.innerHeight + 60) {
       this.active = false;
+    }
+    if (!this.attackable && this.y >= 100 && this.y <= 400) {
+      this.attackable = true;
     }
   };
 
@@ -234,6 +237,11 @@
     } else {
       color = COLORS.wrong;
       glow = 'rgba(255,152,0,0.3)';
+    }
+
+    // 反馈期间半透明
+    if (!this.attackable && this.revealed === false) {
+      ctx.globalAlpha = 0.5;
     }
 
     // 外发光
@@ -358,6 +366,8 @@
     this.spawnTimer = 0;
     this.enemySpawned = false;
     this.questionTransition = 0;
+    this.feedbackTimer = 0;
+    this.feedbackText = '';
 
     this._initStars();
     this._bindEvents();
@@ -451,8 +461,7 @@
     this.correctCount = 0;
     this.totalAnswered = 0;
     this.currentQIndex = 0;
-    this.player.hp = 100;
-    this.player.maxHp = 100;
+    this.player.lives = 3;
     this.player.x = this.width / 2;
     this.bullets = [];
     this.enemies = [];
@@ -495,6 +504,12 @@
 
   ShooterGame.prototype._addFloatText = function(x, y, text, color) {
     this.floatTexts.push(new FloatText(x, y, text, color));
+  };
+
+  ShooterGame.prototype._clearEnemies = function() {
+    for (var i = 0; i < this.enemies.length; i++) {
+      this.enemies[i].active = false;
+    }
   };
 
   ShooterGame.prototype._nextQuestion = function() {
@@ -550,6 +565,15 @@
       }
     }
 
+    // 反馈计时器
+    if (this.feedbackTimer > 0) {
+      this.feedbackTimer--;
+      if (this.feedbackTimer === 0) {
+        this._nextQuestion();
+      }
+      return; // 暂停其他更新
+    }
+
     // 生成敌机
     if (!this.enemySpawned && this.spawnTimer > 0) {
       this.spawnTimer--;
@@ -573,6 +597,7 @@
       // 碰撞检测 - 子弹 vs 敌机
       for (var j = this.bullets.length - 1; j >= 0; j--) {
         var bullet = this.bullets[j];
+        if (!enemy.attackable) continue; // 还没飞到可攻击位置
         var eb = enemy.getBounds();
         if (
           bullet.active &&
@@ -598,24 +623,25 @@
             }
             if (this.callbacks.onCorrect) this.callbacks.onCorrect(this.currentQIndex);
 
-            // 移除所有敌机进入下一题
-            this.enemies = [];
-            this._nextQuestion();
+            this.feedbackText = '回答正确！';
+            this.feedbackTimer = 90;
+            this._clearEnemies();
           } else {
             // 错误
             this.combo = 0;
-            this.player.hp -= 25;
-            if (this.player.hp < 0) this.player.hp = 0;
+            this.player.lives--;
             this.shakeTimer = 15;
             this.flashTimer = 10;
             this._spawnParticles(enemy.x, enemy.y, COLORS.enemy, 20, 'spark');
-            this._addFloatText(enemy.x, enemy.y, '-25 HP', COLORS.enemy);
+            this._addFloatText(enemy.x, enemy.y, '-1 生命', COLORS.enemy);
             if (this.callbacks.onWrong) this.callbacks.onWrong(this.currentQIndex);
 
-            enemy.active = false;
-            this.enemies.splice(i, 1);
+            var correctIdx = this.questions[this.currentQIndex].correct;
+            this.feedbackText = '回答错误！正确答案是 ' + String.fromCharCode(65 + correctIdx);
+            this.feedbackTimer = 90;
+            this._clearEnemies();
 
-            if (this.player.hp <= 0) {
+            if (this.player.lives <= 0) {
               this._gameOver();
               return;
             }
@@ -735,37 +761,16 @@
     ctx.textAlign = 'left';
     ctx.fillText('分数: ' + this.score, 20, 80);
 
-    // HP血条
-    var hpBarX = 20;
-    var hpBarY = 92;
-    var hpBarW = 120;
-    var hpBarH = 14;
-    // 血条背景
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(hpBarX - 1, hpBarY - 1, hpBarW + 2, hpBarH + 2);
-    // 血条底色
-    ctx.fillStyle = '#333333';
-    ctx.fillRect(hpBarX, hpBarY, hpBarW, hpBarH);
-    // 血条当前值（红色渐变）
-    var hpRatio = Math.max(0, this.player.hp / this.player.maxHp);
-    var hpFillW = hpBarW * hpRatio;
-    if (hpFillW > 0) {
-      var hpGrad = ctx.createLinearGradient(hpBarX, 0, hpBarX + hpBarW, 0);
-      hpGrad.addColorStop(0, '#f44336');
-      hpGrad.addColorStop(1, '#ff5722');
-      ctx.fillStyle = hpGrad;
-      ctx.fillRect(hpBarX, hpBarY, hpFillW, hpBarH);
-    }
-    // 血条边框
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(hpBarX, hpBarY, hpBarW, hpBarH);
-    // HP文字
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.textAlign = 'center';
+    // 红心生命
+    var heartX = 20;
+    var heartY = 95;
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('HP ' + this.player.hp + '/' + this.player.maxHp, hpBarX + hpBarW / 2, hpBarY + hpBarH / 2);
+    for (var hi = 0; hi < this.player.lives; hi++) {
+      ctx.fillStyle = '#f44336';
+      ctx.fillText('♥', heartX + hi * 24, heartY);
+    }
 
     // 连击
     if (this.combo >= 2) {
@@ -797,6 +802,17 @@
     // 浮动文字
     for (i = 0; i < this.floatTexts.length; i++) {
       this.floatTexts[i].draw(ctx);
+    }
+
+    // 反馈提示
+    if (this.feedbackTimer > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(0, h / 2 - 40, w, 80);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.feedbackText, w / 2, h / 2);
     }
 
     // 底部提示

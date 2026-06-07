@@ -39,6 +39,26 @@
   function rectIntersect(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   }
+  function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+    var words = text.split('');
+    var line = '';
+    var lines = [];
+    for (var i = 0; i < words.length; i++) {
+      var testLine = line + words[i];
+      var metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line !== '') {
+        lines.push(line);
+        line = words[i];
+      } else {
+        line = testLine;
+      }
+    }
+    lines.push(line);
+    var startY = y - (lines.length - 1) * lineHeight / 2;
+    for (var j = 0; j < lines.length; j++) {
+      ctx.fillText(lines[j], x, startY + j * lineHeight);
+    }
+  }
 
   // ==================== 粒子系统 ====================
   function Particle(x, y, color, type) {
@@ -85,8 +105,7 @@
     this.facingRight = true;
     this.frame = 0;
     this.frameTimer = 0;
-    this.hp = 100;
-    this.maxHp = 100;
+    this.lives = 3;
     this.invincible = 0;
     this.dead = false;
     this.deadTimer = 0;
@@ -137,21 +156,25 @@
     });
 
     // 砖块碰撞（底部顶上去）
+    // 玩家位置是世界坐标，砖块位置也是世界坐标，直接比较
     blocks.forEach(function(b) {
       if (!b.active) return;
       if (self.x + self.w > b.x && self.x < b.x + b.w &&
-          self.y < b.y + b.h && self.y > b.y + b.h - 10 &&
-          self.vy < 0) {
-        self.vy = 0; self.y = b.y + b.h;
-        b.hit(self);
+          self.y < b.y + b.h && self.y + self.h > b.y) {
+        // 从下方顶上去
+        if (self.vy < 0 && self.y + self.h - self.vy >= b.y + b.h) {
+          self.y = b.y + b.h;
+          self.vy = 0;
+          b.hit(self);
+        }
       }
     });
 
     // 掉出屏幕
     if (this.y > canvasH + 50) {
-      this.hp -= 25;
-      if (this.hp <= 0) {
-        this.hp = 0;
+      this.lives--;
+      if (this.lives <= 0) {
+        this.lives = 0;
         this.dead = true; this.vy = -5;
       } else {
         this.respawn(100, 300);
@@ -294,10 +317,10 @@
     keys.downPressed = false;
 
     var options = this.question.options;
-    var optW = 40, optH = 28, gap = 10;
+    var optW = 100, optH = 40, gap = 16;
     var totalW = options.length * optW + (options.length - 1) * gap;
     var startX = this.x + this.w / 2 - totalW / 2;
-    var optY = this.y - 70;
+    var optY = this.y - 90;
 
     for (var i = 0; i < options.length; i++) {
       var ox = startX + i * (optW + gap);
@@ -368,10 +391,10 @@
     // 选项显示
     if (this.showOptions && !this.result) {
       var options = this.question.options;
-      var optW = 40, optH = 28, gap = 10;
+      var optW = 100, optH = 40, gap = 16;
       var totalW = options.length * optW + (options.length - 1) * gap;
       var startX = sx + this.w / 2 - totalW / 2;
-      var optY = sy - 70;
+      var optY = sy - 90;
 
       // 题目背景
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -380,15 +403,15 @@
       ctx.font = qFontSize + 'px sans-serif';
       var qW = ctx.measureText(qText).width + 20;
       // 如果题目文字太长，缩小字号
-      if (qW > 200) {
+      if (qW > 260) {
         qFontSize = 10;
         ctx.font = qFontSize + 'px sans-serif';
         qW = ctx.measureText(qText).width + 20;
       }
-      if (qW > 200) {
+      if (qW > 260) {
         qFontSize = 8;
         ctx.font = qFontSize + 'px sans-serif';
-        qW = Math.min(ctx.measureText(qText).width + 20, 200);
+        qW = Math.min(ctx.measureText(qText).width + 20, 260);
       }
       ctx.fillRect(sx + this.w / 2 - qW / 2, optY - 30, qW, 24);
       ctx.fillStyle = '#ffffff';
@@ -402,19 +425,13 @@
         ctx.strokeStyle = COLORS.qBlock;
         ctx.lineWidth = 2;
         ctx.strokeRect(ox, optY, optW, optH);
-        // 选项文字自动缩小
-        var optFontSize = 14;
-        ctx.font = 'bold ' + optFontSize + 'px monospace';
-        var optTextW = ctx.measureText(options[i]).width;
-        while (optFontSize > 8 && optTextW > optW - 6) {
-          optFontSize--;
-          ctx.font = 'bold ' + optFontSize + 'px monospace';
-          optTextW = ctx.measureText(options[i]).width;
-        }
+        // 选项文字自动换行
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(options[i], ox + optW / 2, optY + optH / 2);
+        var optFontSize = 12;
+        ctx.font = 'bold ' + optFontSize + 'px monospace';
+        drawWrappedText(ctx, options[i], ox + optW / 2, optY + optH / 2, optW - 8, 14);
       }
     }
   };
@@ -638,11 +655,11 @@
           if (self.callbacks.onCorrect) self.callbacks.onCorrect(res.index);
         } else {
           self.wrongCount++;
-          self.player.hp -= 25;
+          self.player.lives--;
           self.shakeScreen = 15;
           self.player.invincible = 120;
-          if (self.player.hp <= 0) {
-            self.player.hp = 0;
+          if (self.player.lives <= 0) {
+            self.player.lives = 0;
             self.player.dead = true; self.player.vy = -5;
           }
           if (self.callbacks.onWrong) self.callbacks.onWrong(res.index);
@@ -768,20 +785,15 @@
     ctx.fillText('分数: ' + this.score, 16, 14);
     ctx.fillText('金币: ' + this.coins, 16, 34);
 
-    // 血条
-    var hpRatio = this.player ? Math.max(0, this.player.hp / this.player.maxHp) : 0;
-    ctx.fillStyle = '#333333';
-    ctx.fillRect(16, 56, 150, 14);
-    var hpColor = hpRatio > 0.5 ? '#44cc44' : (hpRatio > 0.25 ? '#cccc44' : '#cc4444');
-    ctx.fillStyle = hpColor;
-    ctx.fillRect(16, 56, 150 * hpRatio, 14);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(16, 56, 150, 14);
-    ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('HP: ' + (this.player ? Math.max(0, this.player.hp) : 0) + ' / ' + (this.player ? this.player.maxHp : 100), 91, 57);
+    // 红心生命
+    var lives = this.player ? this.player.lives : 0;
+    ctx.fillStyle = '#cc4444';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    var heartStr = '';
+    for (var h = 0; h < lives; h++) heartStr += '♥';
+    ctx.fillText(heartStr, 16, 56);
 
     // 右上角进度
     var answered = this.blocks.filter(function(b) { return b.result !== null; }).length;
@@ -816,12 +828,16 @@
 
     // 操作说明
     ctx.fillStyle = '#ffdd88';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 16px sans-serif';
     ctx.fillText('操作说明', cw / 2, ch / 2 + 15);
-    ctx.fillStyle = '#cccccc';
+    ctx.fillStyle = '#eeeeee';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('← → 或 A D 移动角色', cw / 2, ch / 2 + 40);
+    ctx.fillText('空格 / ↑ 或 W 跳跃（空中可二段跳）', cw / 2, ch / 2 + 60);
+    ctx.fillText('↓ 或 S 选择答案', cw / 2, ch / 2 + 80);
+    ctx.fillStyle = '#ffcc66';
     ctx.font = '13px sans-serif';
-    ctx.fillText('← → 移动角色  |  空格/↑ 跳跃（可二段跳）  |  ↓ 选择答案', cw / 2, ch / 2 + 38);
-    ctx.fillText('顶问号砖块弹出题目，站在选项上方按↓作答', cw / 2, ch / 2 + 56);
+    ctx.fillText('提示：从下方顶问号砖块弹出题目，站在选项上方按 ↓ 作答', cw / 2, ch / 2 + 105);
 
     // 角色动画预览
     ctx.save();
