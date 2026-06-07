@@ -1139,8 +1139,15 @@
 
     // 粒子更新
     for (var i = this.particles.length - 1; i >= 0; i--) {
-      this.particles[i].update();
-      if (this.particles[i].life <= 0) this.particles.splice(i, 1);
+      var pt = this.particles[i];
+      if (pt.isText) {
+        pt.life--;
+        pt.y -= 0.8;
+        if (pt.life <= 0) { this.particles.splice(i, 1); }
+      } else {
+        pt.update();
+        if (pt.life <= 0) this.particles.splice(i, 1);
+      }
     }
 
     // 屏幕震动
