@@ -408,6 +408,8 @@ function updateThemeToggle() {
 // ============================================================
 function loadUser() {
   loadPersistedState();
+  // 加载后检查一次成就（处理XP已够但成就未解锁的情况）
+  checkAchievements(null, null, null);
 }
 
 function loginUser(username, password) {
