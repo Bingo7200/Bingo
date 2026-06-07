@@ -216,28 +216,38 @@
     ctx.fillStyle = 'rgba(255,255,255,' + glowAlpha + ')';
     ctx.fillRect(bx + 4, by + 3, bw - 8, bh * 0.35);
 
-    // 文字
+    // 文字（自动换行，不截断）
     ctx.fillStyle = COLORS.white;
     var blockFontSize = 14;
+    var maxTextW = bw - 16;
     ctx.font = 'bold ' + blockFontSize + 'px sans-serif';
     var blockTextWidth = ctx.measureText(this.text).width;
-    var maxTextW = bw - 20;
-    while (blockTextWidth > maxTextW && blockFontSize > 8) {
+    while (blockTextWidth > maxTextW && blockFontSize > 9) {
       blockFontSize -= 1;
       ctx.font = 'bold ' + blockFontSize + 'px sans-serif';
       blockTextWidth = ctx.measureText(this.text).width;
     }
-    // 如果还是超长，截断加省略号
-    var displayText = this.text;
-    if (blockTextWidth > maxTextW && blockFontSize <= 8) {
-      while (displayText.length > 1 && ctx.measureText(displayText + '…').width > maxTextW) {
-        displayText = displayText.slice(0, -1);
+    // 自动换行
+    var lines = [];
+    var line = '';
+    for (var ci = 0; ci < this.text.length; ci++) {
+      var testLine = line + this.text[ci];
+      if (ctx.measureText(testLine).width > maxTextW && line !== '') {
+        lines.push(line);
+        line = this.text[ci];
+      } else {
+        line = testLine;
       }
-      displayText += '…';
     }
+    lines.push(line);
+    var lineH = blockFontSize + 2;
+    var totalTextH = lines.length * lineH;
+    var startY = by + bh / 2 - totalTextH / 2 + lineH / 2;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(displayText, bx + bw / 2, by + bh / 2 + 1);
+    for (var li = 0; li < lines.length; li++) {
+      ctx.fillText(lines[li], bx + bw / 2, startY + li * lineH);
+    }
     ctx.restore();
   };
 
