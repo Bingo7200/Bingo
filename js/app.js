@@ -80,7 +80,7 @@ const ACHIEVEMENTS = [
   { id: 'course-complete', title: '课程毕业', description: '完成一门完整课程', icon: '\u{1F393}', tier: 'special' },
   { id: 'explorer', title: '探索者', description: '学习3门不同课程', icon: '\u{1F9ED}', tier: 'silver' },
   { id: 'all-courses', title: '全能学者', description: '学习全部6门课程', icon: '\u{1F451}', tier: 'special' },
-  { id: 'xp-100', title: '百分学子', description: '累计获得100XP', icon: '\u{2728}', tier: 'bronze' },
+  { id: 'xp-80', title: '百分学子', description: '累计获得80XP', icon: '\u{2728}', tier: 'bronze' },
   { id: 'xp-500', title: '学海无涯', description: '累计获得500XP', icon: '\u{1F30A}', tier: 'gold' },
 ];
 
@@ -95,8 +95,8 @@ function formatDuration(minutes) {
 }
 
 function calculateXP(score, type) {
-  const base = { theory: 10, practice: 20, quiz: 30 };
-  const b = base[type] || 10;
+  const base = { theory: 5, practice: 10, quiz: 15 };
+  const b = base[type] || 5;
   if (type === 'quiz' && score !== undefined) {
     return Math.round(b * (score / 100));
   }
@@ -106,13 +106,15 @@ function calculateXP(score, type) {
 function getLevelInfo(xp) {
   const levels = [
     { level: 1, title: '初学者', minXP: 0 },
-    { level: 2, title: '学习者', minXP: 50 },
-    { level: 3, title: '探索者', minXP: 120 },
-    { level: 4, title: '实践者', minXP: 220 },
-    { level: 5, title: '分析师', minXP: 350 },
+    { level: 2, title: '学习者', minXP: 30 },
+    { level: 3, title: '探索者', minXP: 80 },
+    { level: 4, title: '实践者', minXP: 160 },
+    { level: 5, title: '分析师', minXP: 300 },
     { level: 6, title: '专家', minXP: 500 },
-    { level: 7, title: '大师', minXP: 700 },
-    { level: 8, title: '宗师', minXP: 1000 },
+    { level: 7, title: '大师', minXP: 800 },
+    { level: 8, title: '宗师', minXP: 1200 },
+    { level: 9, title: '传奇', minXP: 1800 },
+    { level: 10, title: '学霸', minXP: 2500 },
   ];
   let current = levels[0];
   let next = levels[1];
@@ -672,9 +674,9 @@ function checkAchievements(lessonId, type, score) {
   }
 
   // 百分学子
-  if (!isAchievementUnlocked('xp-100') && getUserXP() >= 100) {
-    unlockAchievement('xp-100');
-    newlyUnlocked.push('xp-100');
+  if (!isAchievementUnlocked('xp-80') && getUserXP() >= 80) {
+    unlockAchievement('xp-80');
+    newlyUnlocked.push('xp-80');
   }
 
   // 学海无涯
