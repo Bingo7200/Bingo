@@ -349,6 +349,7 @@
     this.onWrong = options.onWrong || function () {};
     this.onComplete = options.onComplete || function () {};
     this.theme = options.theme || {};
+    this._initialized = false;
 
     // 游戏状态: 'start' | 'playing' | 'paused' | 'gameover' | 'complete'
     this.state = 'start';
@@ -487,7 +488,7 @@
     var gap = 20;
     var totalW = count * bw + (count - 1) * gap;
     var startX = (c.width - totalW) / 2;
-    var baseY = c.height * 0.35;
+    var baseY = c.height * 0.55;
 
     this.blocks = [];
     for (var i = 0; i < count; i++) {
@@ -521,6 +522,7 @@
 
   GameEngine.prototype.start = function () {
     if (this.questions.length === 0) return;
+    this._initialized = true;
     this.state = 'playing';
     this.score = 0;
     this.currentQ = 0;

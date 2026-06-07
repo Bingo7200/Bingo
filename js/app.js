@@ -764,6 +764,9 @@ function handleRoute() {
       renderDashboard();
     } else if (path === '/achievements') {
       renderAchievements();
+    } else if (path.startsWith('/game/')) {
+      const gameType = path.replace('/game/', '');
+      renderGamePage(gameType);
     } else {
       renderHome();
     }
@@ -1080,6 +1083,49 @@ function renderHome() {
             <div class="stat-card__value" style="font-size:1rem;font-weight:400;">
               真实商务场景案例，涵盖销售分析、用户画像、财务报表等，学以致用。
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 游戏化学习 -->
+    <section class="section" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));">
+      <div class="container">
+        <div class="section__header">
+          <span class="section__label" style="color: rgba(255,255,255,0.8);">游戏化学习</span>
+          <h2 class="section__title" style="color: #fff;">边玩边学，答题闯关</h2>
+          <p class="section__description" style="color: rgba(255,255,255,0.85);">选择你喜欢的游戏模式，用趣味方式巩固知识</p>
+        </div>
+        <div class="dashboard__grid">
+          <div class="stat-card" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);">
+            <div class="stat-card__header">
+              <span class="stat-card__label">🎮 数据冒险家</span>
+              <span class="stat-card__icon stat-card__icon--primary">🏃</span>
+            </div>
+            <div class="stat-card__value" style="font-size:1rem;font-weight:400;">
+              平台跳跃闯关模式！左右移动、跳跃收集正确答案方块，躲避错误答案。
+            </div>
+            <button class="btn btn--primary btn--sm" style="margin-top:12px;" data-action="open-game" data-game="platform">开始闯关</button>
+          </div>
+          <div class="stat-card" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);">
+            <div class="stat-card__header">
+              <span class="stat-card__label">🍄 数据管道工</span>
+              <span class="stat-card__icon stat-card__icon--accent">🧑‍🔧</span>
+            </div>
+            <div class="stat-card__value" style="font-size:1rem;font-weight:400;">
+              马里奥风格横版闯关！顶问号砖块答题，二段跳穿越平台，到达终点旗帜。
+            </div>
+            <button class="btn btn--primary btn--sm" style="margin-top:12px;" data-action="open-game" data-game="mario">开始闯关</button>
+          </div>
+          <div class="stat-card" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);">
+            <div class="stat-card__header">
+              <span class="stat-card__label">✈️ 数据战机</span>
+              <span class="stat-card__icon stat-card__icon--highlight">🚀</span>
+            </div>
+            <div class="stat-card__value" style="font-size:1rem;font-weight:400;">
+              雷霆战机射击模式！驾驶战机射击正确答案敌机，连击得分，挑战最高分。
+            </div>
+            <button class="btn btn--primary btn--sm" style="margin-top:12px;" data-action="open-game" data-game="shooter">开始闯关</button>
           </div>
         </div>
       </div>
@@ -1523,6 +1569,7 @@ function renderQuizContent(lesson, course) {
     submitted: false,
     results: [],
     gameMode: false,
+    gameType: 'platform', // platform | mario | shooter
   };
 
   return renderQuizQuestion();
@@ -1547,6 +1594,13 @@ function renderQuizQuestion() {
       <button class="btn btn--sm btn--outline" style="border-color:rgba(255,255,255,0.5);color:inherit;" data-action="toggle-game-mode">
         ${quiz.gameMode ? '切换为答题模式' : '切换为闯关模式'}
       </button>
+      ${quiz.gameMode ? `
+        <select class="btn btn--sm btn--outline" style="border-color:rgba(255,255,255,0.5);color:inherit;background:transparent;" data-action="change-game-type">
+          <option value="platform" ${quiz.gameType === 'platform' ? 'selected' : ''}>🏃 冒险家</option>
+          <option value="mario" ${quiz.gameType === 'mario' ? 'selected' : ''}>🍄 管道工</option>
+          <option value="shooter" ${quiz.gameType === 'shooter' ? 'selected' : ''}>✈️ 战机</option>
+        </select>
+      ` : ''}
       <span>⌨️ 答题模式</span>
     </div>
     ${quiz.gameMode ? renderGameMode(quiz) : ''}
@@ -1631,6 +1685,9 @@ function initGameMode() {
   const container = document.getElementById('game-area');
   if (!container || typeof DataLearnGame === 'undefined') return;
 
+  // 防止重复初始化
+  if (store.currentGame && store.currentGame._initialized) return;
+
   // 转换题目格式为游戏格式
   const gameQuestions = quiz.questions.map(q => ({
     question: q.question,
@@ -1638,7 +1695,7 @@ function initGameMode() {
     correct: q.correct
   }));
 
-  store.currentGame = DataLearnGame.create('game-area', gameQuestions, {
+  const callbacks = {
     onCorrect: function(index) {
       quiz.results[index] = true;
       quiz.answers[index] = quiz.questions[index].correct;
@@ -1653,13 +1710,22 @@ function initGameMode() {
       const xp = calculateXP(Math.round((score / total) * 100), 'quiz');
       markLessonComplete(quiz.lessonId, 'quiz', Math.round((score / total) * 100));
       showToast('游戏通关！获得 ' + xp + ' XP', 'success');
-      // 刷新显示结果
       setTimeout(() => {
         const contentArea = document.querySelector('.course-content__body');
         if (contentArea) contentArea.innerHTML = renderQuizResult();
       }, 1500);
     }
-  });
+  };
+
+  // 根据游戏类型创建对应游戏
+  const gameType = quiz.gameType || 'platform';
+  if (gameType === 'mario' && typeof DataLearnMario !== 'undefined') {
+    store.currentGame = DataLearnMario.create('game-area', gameQuestions, callbacks);
+  } else if (gameType === 'shooter' && typeof DataLearnShooter !== 'undefined') {
+    store.currentGame = DataLearnShooter.create('game-area', gameQuestions, callbacks);
+  } else if (typeof DataLearnGame !== 'undefined') {
+    store.currentGame = DataLearnGame.create('game-area', gameQuestions, callbacks);
+  }
 }
 
 function renderQuizResult() {
@@ -1907,6 +1973,88 @@ function renderAchievements() {
   `;
 }
 
+function renderGamePage(gameType) {
+  const main = document.getElementById('app');
+  if (!main) return;
+
+  const gameNames = {
+    platform: '🎮 数据冒险家',
+    mario: '🍄 数据管道工',
+    shooter: '✈️ 数据战机'
+  };
+  const gameName = gameNames[gameType] || '游戏';
+
+  // 收集所有测验题目作为游戏题库
+  const allQuestions = [];
+  (COURSES_DATA || []).forEach(course => {
+    course.lessons.forEach(lesson => {
+      if (lesson.type === 'quiz' && lesson.questions) {
+        lesson.questions.forEach(q => {
+          allQuestions.push({
+            question: q.question,
+            options: q.options,
+            correct: q.correct
+          });
+        });
+      }
+    });
+  });
+
+  // 随机打乱并取前10题
+  const shuffled = allQuestions.sort(() => Math.random() - 0.5).slice(0, 10);
+
+  main.innerHTML = `
+    <section class="section">
+      <div class="container">
+        <div class="section__header">
+          <span class="section__label">游戏化学习</span>
+          <h2 class="section__title">${gameName}</h2>
+          <p class="section__description">从全部课程题库中随机抽取题目，挑战你的知识储备！</p>
+        </div>
+        <div id="standalone-game-area" class="game-container" style="max-width:900px;">
+          <p style="text-align:center;padding:60px;color:var(--text-secondary);">游戏加载中...</p>
+        </div>
+        <div style="text-align:center;margin-top:24px;">
+          <button class="btn btn--secondary" data-action="navigate" data-href="#/home">返回首页</button>
+        </div>
+      </div>
+    </section>
+  `;
+
+  // 延迟初始化游戏
+  setTimeout(() => {
+    const container = document.getElementById('standalone-game-area');
+    if (!container) return;
+
+    if (shuffled.length === 0) {
+      container.innerHTML = '<p style="text-align:center;padding:40px;">暂无题目，请先学习课程中的测验内容。</p>';
+      return;
+    }
+
+    const callbacks = {
+      onCorrect: function(idx) { showToast('回答正确！', 'success'); },
+      onWrong: function(idx) { showToast('回答错误！', 'error'); },
+      onComplete: function(score, total) {
+        const xp = calculateXP(Math.round((score / total) * 100), 'quiz');
+        if (store.user) {
+          updateUserXP(xp);
+          showToast('游戏通关！获得 ' + xp + ' XP', 'success');
+        }
+      }
+    };
+
+    if (gameType === 'platform' && typeof DataLearnGame !== 'undefined') {
+      store.currentGame = DataLearnGame.create('standalone-game-area', shuffled, callbacks);
+    } else if (gameType === 'mario' && typeof DataLearnMario !== 'undefined') {
+      store.currentGame = DataLearnMario.create('standalone-game-area', shuffled, callbacks);
+    } else if (gameType === 'shooter' && typeof DataLearnShooter !== 'undefined') {
+      store.currentGame = DataLearnShooter.create('standalone-game-area', shuffled, callbacks);
+    } else {
+      container.innerHTML = '<p style="text-align:center;padding:40px;">游戏加载失败，请刷新页面重试。</p>';
+    }
+  }, 100);
+}
+
 function renderAchievementCard(achievement) {
   const unlocked = isAchievementUnlocked(achievement.id);
   const cardClass = `achievement-card ${unlocked ? 'achievement-card--unlocked' : 'achievement-card--locked'}`;
@@ -1948,6 +2096,14 @@ function handleGlobalClick(e) {
         navigateTo(href);
         // 关闭移动端菜单
         closeMobileMenu();
+      }
+      break;
+    }
+
+    case 'open-game': {
+      const gameType = target.getAttribute('data-game');
+      if (gameType) {
+        navigateTo('#/game/' + gameType);
       }
       break;
     }
@@ -2042,6 +2198,22 @@ function handleGlobalClick(e) {
       const quiz = store.currentQuiz;
       if (quiz) {
         quiz.gameMode = !quiz.gameMode;
+        if (store.currentGame) {
+          store.currentGame.stop();
+          store.currentGame = null;
+        }
+        refreshQuizDisplay();
+        if (quiz.gameMode) {
+          setTimeout(initGameMode, 100);
+        }
+      }
+      break;
+    }
+
+    case 'change-game-type': {
+      const quiz = store.currentQuiz;
+      if (quiz && target.tagName === 'SELECT') {
+        quiz.gameType = target.value;
         if (store.currentGame) {
           store.currentGame.stop();
           store.currentGame = null;
