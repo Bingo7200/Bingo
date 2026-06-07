@@ -221,14 +221,23 @@
     var blockFontSize = 14;
     ctx.font = 'bold ' + blockFontSize + 'px sans-serif';
     var blockTextWidth = ctx.measureText(this.text).width;
-    while (blockTextWidth > bw - 16 && blockFontSize > 9) {
+    var maxTextW = bw - 20;
+    while (blockTextWidth > maxTextW && blockFontSize > 8) {
       blockFontSize -= 1;
       ctx.font = 'bold ' + blockFontSize + 'px sans-serif';
       blockTextWidth = ctx.measureText(this.text).width;
     }
+    // 如果还是超长，截断加省略号
+    var displayText = this.text;
+    if (blockTextWidth > maxTextW && blockFontSize <= 8) {
+      while (displayText.length > 1 && ctx.measureText(displayText + '…').width > maxTextW) {
+        displayText = displayText.slice(0, -1);
+      }
+      displayText += '…';
+    }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(this.text, bx + bw / 2, by + bh / 2 + 1);
+    ctx.fillText(displayText, bx + bw / 2, by + bh / 2 + 1);
     ctx.restore();
   };
 

@@ -59,6 +59,19 @@
       ctx.fillText(lines[j], x, startY + j * lineHeight);
     }
   }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
 
   // ==================== 粒子系统 ====================
   function Particle(x, y, color, type) {
@@ -111,6 +124,7 @@
     this.invincible = 0;
     this.dead = false;
     this.deadTimer = 0;
+    this.onBlockAnswer = null;
   }
   Player.prototype.update = function(platforms, blocks, keys, canvasH) {
     if (this.dead) {
@@ -157,18 +171,19 @@
       }
     });
 
-    // 砖块碰撞（底部顶上去）
-    // 玩家位置是世界坐标，砖块位置也是世界坐标，直接比较
+    // 砖块碰撞（从上方落下碰到砖块）
     blocks.forEach(function(b) {
-      if (!b.active) return;
+      if (!b.active || b.answered) return;
       if (self.x + self.w > b.x && self.x < b.x + b.w &&
-          self.y < b.y + b.h && self.y + self.h > b.y) {
-        // 从下方顶上去
-        if (self.vy < 0 && self.y + self.h - self.vy >= b.y + b.h) {
-          self.y = b.y + b.h;
-          self.vy = 0;
-          b.hit(self);
-        }
+          self.y + self.h > b.y && self.y + self.h < b.y + b.h + 10 &&
+          self.vy >= 0) {
+        // 从上方碰到砖块
+        self.y = b.y - self.h;
+        self.vy = 0;
+        self.grounded = true;
+        var correct = b.answer();
+        // 将结果通知游戏引擎（通过回调）
+        if (self.onBlockAnswer) self.onBlockAnswer(b, correct);
       }
     });
 
@@ -291,163 +306,89 @@
   };
 
   // ==================== 问号砖块 ====================
-  function QuestionBlock(x, y, questionData, index) {
-    this.x = x; this.y = y; this.w = 32; this.h = 32;
-    this.question = questionData;
-    this.index = index;
+  function QuestionBlock(x, y, questionData, questionIndex, optionIndex, optionText, isCorrect) {
+    this.x = x; this.y = y; this.w = 80; this.h = 32;
+    this.questionData = questionData;
+    this.questionIndex = questionIndex;
+    this.optionIndex = optionIndex;
+    this.text = optionText;
+    this.isCorrect = isCorrect;
     this.active = true;
-    this.opened = false;
+    this.answered = false;
     this.result = null; // 'correct' | 'wrong'
     this.shake = 0;
-    this.showOptions = false;
-    this.optionSelected = -1;
-    this.coinAnim = 0;
+    this.bobOffset = Math.random() * Math.PI * 2;
   }
-  QuestionBlock.prototype.hit = function(player) {
-    if (!this.active || this.opened) return;
+  QuestionBlock.prototype.answer = function() {
+    if (this.answered) return false;
+    this.answered = true;
     this.shake = 10;
-    this.opened = true;
-    this.showOptions = true;
-    this.coinAnim = 20;
+    if (this.isCorrect) {
+      this.result = 'correct';
+    } else {
+      this.result = 'wrong';
+    }
+    return this.isCorrect;
   };
   QuestionBlock.prototype.update = function() {
     if (this.shake > 0) this.shake--;
-    if (this.coinAnim > 0) this.coinAnim--;
-    if (this.feedbackTimer > 0) this.feedbackTimer--;
-  };
-  QuestionBlock.prototype.checkSelection = function(player, keys, particles) {
-    if (!this.showOptions || this.result) return null;
-    if (!keys.downPressed) return null;
-    keys.downPressed = false;
-
-    var options = this.question.options;
-    var optW = 120, optH = 48, gap = 16;
-    var totalW = options.length * optW + (options.length - 1) * gap;
-    var startX = this.x + this.w / 2 - totalW / 2;
-    var optY = this.y - 100;
-
-    for (var i = 0; i < options.length; i++) {
-      var ox = startX + i * (optW + gap);
-      if (player.x + player.w > ox && player.x < ox + optW &&
-          player.y + player.h > optY && player.y < optY + optH) {
-        this.optionSelected = i;
-        var correct = (i === this.question.correctIndex);
-        this.result = correct ? 'correct' : 'wrong';
-        this.showOptions = false;
-        this.feedbackTimer = 60; // 1秒反馈显示
-        // 粒子特效
-        var color = correct ? COLORS.qBlockCorrect : COLORS.qBlockWrong;
-        for (var p = 0; p < 15; p++) {
-          particles.push(new Particle(this.x + this.w / 2, this.y, color, correct ? 'star' : 'spark'));
-        }
-        return { index: this.index, correct: correct, selected: i };
-      }
-    }
-    return null;
+    this.bobOffset += 0.03;
   };
   QuestionBlock.prototype.draw = function(ctx, camX) {
     var sx = this.x - camX;
     var sy = this.y + (this.shake > 0 ? Math.sin(this.shake) * 3 : 0);
 
+    // 未回答的砖块有轻微浮动
+    if (!this.answered) {
+      sy += Math.sin(this.bobOffset) * 2;
+    }
+
     // 砖块底色
     if (this.result === 'correct') ctx.fillStyle = COLORS.qBlockCorrect;
     else if (this.result === 'wrong') ctx.fillStyle = COLORS.qBlockWrong;
-    else if (this.opened) ctx.fillStyle = COLORS.qBlockOpen;
+    else if (this.answered) ctx.fillStyle = COLORS.qBlockOpen;
     else ctx.fillStyle = COLORS.qBlock;
 
     ctx.fillRect(sx, sy, this.w, this.h);
 
     // 边框高光
-    ctx.fillStyle = this.opened ? '#aaaaaa' : COLORS.qBlockLight;
+    ctx.fillStyle = this.answered ? '#aaaaaa' : COLORS.qBlockLight;
     ctx.fillRect(sx, sy, this.w, 3);
     ctx.fillRect(sx, sy, 3, this.h);
-    ctx.fillStyle = this.opened ? '#666666' : COLORS.qBlockDark;
+    ctx.fillStyle = this.answered ? '#666666' : COLORS.qBlockDark;
     ctx.fillRect(sx, sy + this.h - 3, this.w, 3);
     ctx.fillRect(sx + this.w - 3, sy, 3, this.h);
 
-    // 问号或状态标记
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 20px monospace';
+    // 文字内容
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (!this.opened) {
-      ctx.fillText('?', sx + this.w / 2, sy + this.h / 2 + 2);
-    } else if (this.result === 'correct') {
+
+    if (this.result === 'correct') {
+      // 正确：显示对勾
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('✓', sx + this.w / 2, sy + this.h / 2 + 2);
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('\u2713', sx + this.w / 2, sy + this.h / 2 + 1);
     } else if (this.result === 'wrong') {
+      // 错误：显示叉号
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('✗', sx + this.w / 2, sy + this.h / 2 + 2);
-    }
-
-    // 金币弹出动画
-    if (this.coinAnim > 0) {
-      var coinY = sy - 30 - (20 - this.coinAnim) * 2;
-      var coinScale = Math.sin((this.coinAnim / 20) * Math.PI);
-      ctx.fillStyle = COLORS.coin;
-      ctx.beginPath();
-      ctx.ellipse(sx + this.w / 2, coinY, 8 * coinScale, 10, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#d4a000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // 选项显示
-    if (this.showOptions && !this.result) {
-      var options = this.question.options;
-      var optW = 120, optH = 48, gap = 16;
-      var totalW = options.length * optW + (options.length - 1) * gap;
-      var startX = sx + this.w / 2 - totalW / 2;
-      var optY = sy - 100;
-
-      // 题目背景
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      var qText = this.question.question;
-      var qFontSize = 12;
-      ctx.font = qFontSize + 'px sans-serif';
-      var qW = ctx.measureText(qText).width + 20;
-      // 如果题目文字太长，缩小字号
-      if (qW > 260) {
-        qFontSize = 10;
-        ctx.font = qFontSize + 'px sans-serif';
-        qW = ctx.measureText(qText).width + 20;
-      }
-      if (qW > 260) {
-        qFontSize = 8;
-        ctx.font = qFontSize + 'px sans-serif';
-        qW = Math.min(ctx.measureText(qText).width + 20, 260);
-      }
-      ctx.fillRect(sx + this.w / 2 - qW / 2, optY - 30, qW, 24);
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('\u2717', sx + this.w / 2, sy + this.h / 2 + 1);
+    } else if (this.answered) {
+      // 已回答但无结果（被同组正确答案关闭的）：灰色
+      ctx.fillStyle = '#cccccc';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(this.text, sx + this.w / 2, sy + this.h / 2 + 1);
+    } else {
+      // 未回答：显示选项文字（白色，自动缩小适配）
       ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'center';
-      ctx.fillText(qText, sx + this.w / 2, optY - 14);
-
-      for (var i = 0; i < options.length; i++) {
-        var ox = startX + i * (optW + gap);
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(ox, optY, optW, optH);
-        ctx.strokeStyle = COLORS.qBlock;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(ox, optY, optW, optH);
-        // 选项文字自动换行
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        var optFontSize = 12;
-        ctx.font = 'bold ' + optFontSize + 'px monospace';
-        drawWrappedText(ctx, options[i], ox + optW / 2, optY + optH / 2, optW - 10, 14);
+      var fontSize = 12;
+      ctx.font = 'bold ' + fontSize + 'px sans-serif';
+      var maxTextW = this.w - 10;
+      while (ctx.measureText(this.text).width > maxTextW && fontSize > 8) {
+        fontSize--;
+        ctx.font = 'bold ' + fontSize + 'px sans-serif';
       }
-    }
-
-    // 答题反馈文字
-    if (this.result && this.feedbackTimer > 0) {
-      ctx.fillStyle = this.result === 'correct' ? '#44ff44' : '#ff4444';
-      ctx.font = 'bold 16px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      var fbText = this.result === 'correct' ? '回答正确！' : '回答错误！';
-      ctx.fillText(fbText, sx + this.w / 2, sy - 20);
+      ctx.fillText(this.text, sx + this.w / 2, sy + this.h / 2 + 1);
     }
   };
 
@@ -518,6 +459,7 @@
     this.clouds = [];
     this.mountains = [];
     this.coinsList = [];
+    this.currentQIndex = 0;
 
     this.player = new Player(100, 300);
     this.platforms = [];
@@ -539,26 +481,33 @@
 
   MarioGame.prototype._buildLevel = function() {
     var qw = this.questions.length;
-    this.levelWidth = Math.max(800, qw * 200 + 400);
+    this.levelWidth = Math.max(800, qw * 350 + 400);
 
     // 地面
     this.platforms.push(new Platform(0, 400, this.levelWidth, 200, 'ground'));
 
-    // 浮动平台和砖块
-    var px = 200;
-    for (var i = 0; i < qw; i++) {
-      // 浮动平台
-      this.platforms.push(new Platform(px, 300, 80, 16, 'float'));
-      // 问号砖块
-      this.blocks.push(new QuestionBlock(px + 24, 220, this.questions[i], i));
-      // 装饰金币
-      if (i % 2 === 0) {
-        this.coinsList.push(new Coin(px + 100, 360));
+    // 每道题生成一组砖块（4个选项）
+    for (var qi = 0; qi < qw; qi++) {
+      var q = this.questions[qi];
+      var baseX = 200 + qi * 350; // 每题一组，间隔350
+      var baseY = 220; // 平台上方
+
+      // 为每组砖块添加浮动平台
+      this.platforms.push(new Platform(baseX - 10, baseY + 40, 340, 16, 'float'));
+
+      for (var oi = 0; oi < q.options.length; oi++) {
+        var bx = baseX + oi * 85;
+        var by = baseY + (oi % 2) * 50; // 上下错开
+        this.blocks.push(new QuestionBlock(bx, by, q, qi, oi, q.options[oi], oi === q.correct));
       }
-      px += 200;
+
+      // 装饰金币
+      if (qi % 2 === 0) {
+        this.coinsList.push(new Coin(baseX + 160, 360));
+      }
     }
 
-    // 额外平台
+    // 额外平台帮助到达砖块
     this.platforms.push(new Platform(120, 280, 60, 16, 'float'));
     this.platforms.push(new Platform(380, 240, 60, 16, 'float'));
     this.platforms.push(new Platform(600, 260, 60, 16, 'float'));
@@ -636,6 +585,21 @@
     });
   };
 
+  MarioGame.prototype._nextQuestion = function() {
+    this.currentQIndex++;
+    if (this.currentQIndex >= this.questions.length) {
+      // 所有题目已答完
+      this.state = 'complete';
+      if (this.callbacks.onComplete) this.callbacks.onComplete(this.score, this.questions.length);
+    }
+  };
+
+  MarioGame.prototype._spawnParticles = function(x, y, color, count, type) {
+    for (var i = 0; i < count; i++) {
+      this.particles.push(new Particle(x, y, color, type || 'spark'));
+    }
+  };
+
   MarioGame.prototype.restart = function() {
     this.state = 'playing';
     this.score = 0;
@@ -644,11 +608,51 @@
     this.wrongCount = 0;
     this.shakeScreen = 0;
     this.particles = [];
+    this.currentQIndex = 0;
     this.player = new Player(100, 300);
     this.camX = 0;
     this.blocks.forEach(function(b) {
-      b.opened = false; b.result = null; b.showOptions = false; b.optionSelected = -1;
+      b.answered = false;
+      b.result = null;
+      b.active = true;
     });
+    // 设置玩家回调
+    this._setupBlockAnswerCallback();
+  };
+
+  MarioGame.prototype._setupBlockAnswerCallback = function() {
+    var self = this;
+    this.player.onBlockAnswer = function(block, correct) {
+      if (correct) {
+        self.score += 10;
+        self.correctCount++;
+        self._spawnParticles(block.x + block.w / 2, block.y, COLORS.qBlockCorrect, 15, 'star');
+        if (self.callbacks.onCorrect) self.callbacks.onCorrect(block.questionIndex);
+        // 移除当前题的其他砖块（标记为已回答）
+        self.blocks.forEach(function(b) {
+          if (b.questionIndex === block.questionIndex && b !== block) {
+            b.answered = true;
+            b.result = null;
+          }
+        });
+        // 延迟进入下一题
+        setTimeout(function() { self._nextQuestion(); }, 600);
+      } else {
+        self.wrongCount++;
+        self.player.lives--;
+        self.player.invincible = 60;
+        self.shakeScreen = 15;
+        self._spawnParticles(block.x + block.w / 2, block.y, COLORS.qBlockWrong, 15, 'spark');
+        if (self.callbacks.onWrong) self.callbacks.onWrong(block.questionIndex);
+        if (self.player.lives <= 0) {
+          self.player.lives = 0;
+          self.player.dead = true;
+          self.player.vy = -5;
+          self.state = 'gameover';
+          if (self.callbacks.onComplete) self.callbacks.onComplete(self.score, self.questions.length);
+        }
+      }
+    };
   };
 
   MarioGame.prototype._update = function() {
@@ -663,23 +667,6 @@
     var self = this;
     this.blocks.forEach(function(b) {
       b.update();
-      var res = b.checkSelection(self.player, self.keys, self.particles);
-      if (res) {
-        if (res.correct) {
-          self.score += 10; self.coins++; self.correctCount++;
-          if (self.callbacks.onCorrect) self.callbacks.onCorrect(res.index);
-        } else {
-          self.wrongCount++;
-          self.player.lives--;
-          self.shakeScreen = 15;
-          self.player.invincible = 120;
-          if (self.player.lives <= 0) {
-            self.player.lives = 0;
-            self.player.dead = true; self.player.vy = -5;
-          }
-          if (self.callbacks.onWrong) self.callbacks.onWrong(res.index);
-        }
-      }
     });
 
     // 金币收集
@@ -702,11 +689,11 @@
     if (this.shakeScreen > 0) this.shakeScreen--;
 
     // 终点检测
-    if (this.player.x > this.flag.x && this.state === 'playing') {
-      var allAnswered = this.blocks.every(function(b) { return b.result !== null; });
+    if (this.flag && this.player.x > this.flag.x && this.state === 'playing') {
+      var allAnswered = this.blocks.every(function(b) { return b.answered; });
       if (allAnswered) {
         this.state = 'complete';
-        if (this.callbacks.onComplete) this.callbacks.onComplete(this.score, this.questions.length);
+        if (self.callbacks.onComplete) self.callbacks.onComplete(self.score, self.questions.length);
       }
     }
 
@@ -807,16 +794,16 @@
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     var heartStr = '';
-    for (var h = 0; h < lives; h++) heartStr += '♥';
+    for (var h = 0; h < lives; h++) heartStr += '\u2665';
     ctx.fillText(heartStr, 16, 56);
 
     // 右上角进度
-    var answered = this.blocks.filter(function(b) { return b.result !== null; }).length;
+    var answered = this.blocks.filter(function(b) { return b.result === 'correct'; }).length;
     ctx.fillStyle = COLORS.uiBg;
     ctx.fillRect(cw - 140, 8, 132, 30);
     ctx.fillStyle = COLORS.text;
     ctx.textAlign = 'right';
-    ctx.fillText('进度: ' + answered + ' / ' + this.blocks.length, cw - 16, 14);
+    ctx.fillText('进度: ' + answered + ' / ' + this.questions.length, cw - 16, 14);
 
     // 底部操作提示
     ctx.fillStyle = COLORS.uiBg;
@@ -825,7 +812,27 @@
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('← → 移动  |  空格/↑ 跳跃（可二段跳）  |  ↓ 选择答案', cw / 2, ch - 22);
+    ctx.fillText('\u2190 \u2192 移动  |  空格/\u2191 跳跃\uff08可二段跳\uff09  |  跳到正确答案的砖块上即可作答', cw / 2, ch - 22);
+
+    // 当前题目 HUD（顶部居中）
+    if (this.state === 'playing' && this.currentQIndex < this.questions.length) {
+      var q = this.questions[this.currentQIndex];
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      roundRect(ctx, 10, 44, cw - 20, 36, 8);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      var qText = '\u7B2C' + (this.currentQIndex + 1) + '\u9898: ' + q.question;
+      // 自动缩小
+      var maxW = cw - 60;
+      while (ctx.measureText(qText).width > maxW && parseInt(ctx.font) > 10) {
+        var currentSize = parseInt(ctx.font);
+        ctx.font = 'bold ' + (currentSize - 1) + 'px sans-serif';
+      }
+      ctx.fillText(qText, cw / 2, 62);
+    }
   };
 
   MarioGame.prototype._drawStart = function(ctx, cw, ch) {
@@ -847,12 +854,11 @@
     ctx.fillText('操作说明', cw / 2, ch / 2 + 15);
     ctx.fillStyle = '#eeeeee';
     ctx.font = '14px sans-serif';
-    ctx.fillText('← → 或 A D 移动角色', cw / 2, ch / 2 + 40);
-    ctx.fillText('空格 / ↑ 或 W 跳跃（空中可二段跳）', cw / 2, ch / 2 + 60);
-    ctx.fillText('↓ 或 S 选择答案', cw / 2, ch / 2 + 80);
+    ctx.fillText('\u2190 \u2192 或 A D 移动角色', cw / 2, ch / 2 + 40);
+    ctx.fillText('空格 / \u2191 或 W 跳跃\uff08空中可二段跳\uff09', cw / 2, ch / 2 + 60);
     ctx.fillStyle = '#ffcc66';
     ctx.font = '13px sans-serif';
-    ctx.fillText('提示：从下方顶问号砖块弹出题目，站在选项上方按 ↓ 作答', cw / 2, ch / 2 + 105);
+    ctx.fillText('提示：跳到正确答案的砖块上即可作答', cw / 2, ch / 2 + 85);
 
     // 角色动画预览
     ctx.save();
@@ -968,10 +974,10 @@
       if (this.isMobile()) {
         var btnStyle = 'position:absolute;bottom:10px;width:60px;height:60px;background:rgba(0,0,0,0.4);border:2px solid rgba(255,255,255,0.5);border-radius:8px;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:10;user-select:none;';
         var btns = [
-          { id: 'mario-btn-left', html: '←', left: '10px' },
-          { id: 'mario-btn-right', html: '→', left: '80px' },
+          { id: 'mario-btn-left', html: '\u2190', left: '10px' },
+          { id: 'mario-btn-right', html: '\u2192', left: '80px' },
           { id: 'mario-btn-jump', html: '跳', right: '80px' },
-          { id: 'mario-btn-down', html: '↓', right: '10px' }
+          { id: 'mario-btn-down', html: '\u2193', right: '10px' }
         ];
         btns.forEach(function(b) {
           var el = document.createElement('div');
@@ -983,7 +989,9 @@
         });
       }
 
-      return new MarioGame(canvas, { questions: questions || [], callbacks: callbacks || {} });
+      var game = new MarioGame(canvas, { questions: questions || [], callbacks: callbacks || {} });
+      game._setupBlockAnswerCallback();
+      return game;
     },
     isMobile: function() {
       return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
