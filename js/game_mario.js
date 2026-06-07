@@ -954,6 +954,7 @@
     }
 
     // 选项方块碰撞
+    var answeredOption = false;
     for (var i = 0; i < this.optionBlocks.length; i++) {
       var ob = this.optionBlocks[i];
       if (ob.answered) continue;
@@ -966,6 +967,7 @@
         player.y = ob.y + ob.h;
         player.vy = 0;
         ob.answered = true;
+        answeredOption = true;
 
         if (ob.isCorrect) {
           ob.result = 'correct';
@@ -994,11 +996,14 @@
             this.onComplete(this.score, this.questions.length);
           }
         }
-        // 选完后立即清除所有选项
-        this.optionBlocks = [];
-        this.showingQuestion = false;
-        this.currentQuestionData = null;
+        break;
       }
+    }
+    // 选完任意选项后，立即清除所有选项
+    if (answeredOption) {
+      this.optionBlocks = [];
+      this.showingQuestion = false;
+      this.currentQuestionData = null;
     }
 
     // 题目计时器（选项不会自动消失，等玩家选择后才清除）
