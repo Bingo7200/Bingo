@@ -134,7 +134,7 @@
     } else if (this.grounded) {
       this.frame = 0; this.frameTimer = 0;
     }
-  };
+    };
   Player.prototype.draw = function(ctx, camX) {
     if (this.dead) return;
     if (this.invincible > 0 && Math.floor(this.invincible / 4) % 2) return;
@@ -466,6 +466,77 @@
     ctx.stroke();
   };
 
+  // ==================== 蘑菇奖励 ====================
+  function Mushroom(x, y, type) {
+    this.x = x; this.y = y; this.w = 24; this.h = 24;
+    this.vx = 2; this.vy = -6; // 弹出后先向上再下落
+    this.active = true;
+    this.type = type; // 'invincible' | 'heal'
+    this.grounded = false;
+    this.frame = 0; this.frameTimer = 0;
+  }
+  Mushroom.prototype.update = function(platforms) {
+    if (!this.active) return;
+    this.vy += 0.4; // 重力
+    this.x += this.vx;
+    this.y += this.vy;
+    this.frameTimer++;
+    if (this.frameTimer > 8) { this.frame = (this.frame + 1) % 2; this.frameTimer = 0; }
+
+    // 地面碰撞
+    this.grounded = false;
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      if (p.destroyed) continue;
+      if (p.type === 'ground' || p.type === 'float') {
+        if (this.x + this.w > p.x && this.x < p.x + p.w &&
+            this.y + this.h > p.y && this.y + this.h < p.y + 20 && this.vy >= 0) {
+          this.y = p.y - this.h;
+          this.vy = 0;
+          this.grounded = true;
+        }
+      }
+      // 碰墙反弹
+      if (p.type === 'pipe' || p.type === 'brick' || p.type === 'qblock') {
+        if (this.x + this.w > p.x && this.x < p.x + p.w &&
+            this.y + this.h > p.y && this.y < p.y + p.h) {
+          this.vx *= -1;
+          this.x += this.vx * 2;
+        }
+      }
+    }
+    // 掉出屏幕
+    if (this.y > 700) this.active = false;
+  };
+  Mushroom.prototype.draw = function(ctx, camX) {
+    if (!this.active) return;
+    var sx = this.x - camX;
+    var sy = this.y;
+    // 蘑菇头
+    ctx.fillStyle = this.type === 'invincible' ? '#ff6600' : '#ff4488';
+    ctx.beginPath();
+    ctx.arc(sx + this.w / 2, sy + 8, 12, Math.PI, 0);
+    ctx.fill();
+    // 白色斑点
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(sx + 8, sy + 4, 3, 0, Math.PI * 2);
+    ctx.arc(sx + 16, sy + 4, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // 蘑菇柄
+    ctx.fillStyle = '#ffe0b2';
+    ctx.fillRect(sx + 6, sy + 8, 12, 12);
+    // 眼睛
+    ctx.fillStyle = '#333';
+    ctx.fillRect(sx + 8, sy + 10, 3, 3);
+    ctx.fillRect(sx + 14, sy + 10, 3, 3);
+    // 标记图标
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = this.type === 'invincible' ? '#ff0' : '#f00';
+    ctx.fillText(this.type === 'invincible' ? '★' : '+', sx + this.w / 2, sy + 2);
+  };
+
   // ==================== 选项方块 ====================
   function OptionBlock(x, y, w, h, text, isCorrect, index) {
     this.x = x; this.y = y; this.w = w; this.h = h;
@@ -561,6 +632,7 @@
     this.coinList = [];
     this.particles = [];
     this.optionBlocks = [];
+    this.mushrooms = [];
     this.clouds = [];
     this.hills = [];
 
@@ -741,6 +813,7 @@
     this.questionTimer = 0;
     this.currentQuestionData = null;
     this.optionBlocks = [];
+    this.mushrooms = [];
     this.particles = [];
     this.shakeScreen = 0;
 
@@ -792,6 +865,11 @@
         q.options[i], i === q.correct, i
       ));
     }
+  };
+
+  // 浮动文字
+  MarioGame.prototype._addFloatText = function(x, y, text, color) {
+    this.particles.push({ x: x, y: y, text: text, color: color, life: 60, isText: true });
   };
 
   // ==================== 游戏循环 ====================
@@ -953,6 +1031,29 @@
       }
     }
 
+    // 蘑菇更新和碰撞
+    for (var i = this.mushrooms.length - 1; i >= 0; i--) {
+      var m = this.mushrooms[i];
+      m.update(this.platforms);
+      if (!m.active) { this.mushrooms.splice(i, 1); continue; }
+      if (aabb(player, m)) {
+        m.active = false;
+        if (m.type === 'invincible') {
+          player.invincible = 300;
+          this._addFloatText(m.x, m.y - 20, '无敌5秒！', '#ff6600');
+        } else {
+          player.lives = Math.min(player.lives + 1, 5);
+          this.lives = player.lives;
+          this._addFloatText(m.x, m.y - 20, '+1生命！', '#ff4488');
+        }
+        for (var k = 0; k < 12; k++) {
+          this.particles.push(new Particle(m.x + m.w / 2, m.y + m.h / 2,
+            m.type === 'invincible' ? '#ff6600' : '#ff4488', 'star'));
+        }
+        this.mushrooms.splice(i, 1);
+      }
+    }
+
     // 选项方块碰撞
     var answeredOption = false;
     for (var i = 0; i < this.optionBlocks.length; i++) {
@@ -978,6 +1079,9 @@
           for (var k = 0; k < 15; k++) {
             this.particles.push(new Particle(ob.x + ob.w / 2, ob.y + ob.h / 2, COLORS.correct, 'star'));
           }
+          // 弹出蘑菇奖励
+          var mType = Math.random() < 0.5 ? 'invincible' : 'heal';
+          this.mushrooms.push(new Mushroom(ob.x + ob.w / 2 - 12, ob.y - 24, mType));
         } else {
           ob.result = 'wrong';
           player.lives--;
@@ -1129,6 +1233,11 @@
       this.coinList[i].draw(ctx, this.camX);
     }
 
+    // 蘑菇
+    for (var i = 0; i < this.mushrooms.length; i++) {
+      this.mushrooms[i].draw(ctx, this.camX);
+    }
+
     // 敌人
     for (var i = 0; i < this.enemies.length; i++) {
       this.enemies[i].draw(ctx, this.camX);
@@ -1146,8 +1255,21 @@
     }
 
     // 粒子
-    for (var i = 0; i < this.particles.length; i++) {
-      this.particles[i].draw(ctx, this.camX);
+    for (var i = this.particles.length - 1; i >= 0; i--) {
+      var pt = this.particles[i];
+      if (pt.isText) {
+        pt.life--;
+        pt.y -= 0.8;
+        if (pt.life <= 0) { this.particles.splice(i, 1); continue; }
+        ctx.globalAlpha = pt.life / 60;
+        ctx.fillStyle = pt.color;
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(pt.text, pt.x - this.camX, pt.y);
+        ctx.globalAlpha = 1;
+      } else {
+        pt.draw(ctx, this.camX);
+      }
     }
 
     ctx.restore();
