@@ -336,24 +336,37 @@
     this.frameTimer++;
     if (this.frameTimer > 10) { this.frame = (this.frame + 1) % 2; this.frameTimer = 0; }
 
-    // 边缘检测（不掉落）
-    var onEdge = true;
+    // 边缘检测：检查前方是否有地面
     var self = this;
+    var hasGround = false;
+    var checkX = this.patrolDir > 0 ? this.x + this.w + 5 : this.x - 5;
     for (var i = 0; i < platforms.length; i++) {
       var p = platforms[i];
       if (p.destroyed) continue;
-      if ((p.type === 'ground' || p.type === 'float') &&
-          self.x + self.w > p.x && self.x + self.w < p.x + 20 &&
-          self.y + self.h >= p.y - 2 && self.y + self.h <= p.y + 10) {
-        onEdge = false; break;
-      }
-      if ((p.type === 'ground' || p.type === 'float') &&
-          self.x > p.x && self.x < p.x + 20 &&
-          self.y + self.h >= p.y - 2 && self.y + self.h <= p.y + 10) {
-        onEdge = false; break;
+      if (p.type === 'ground' || p.type === 'float' || p.type === 'pipe') {
+        if (checkX >= p.x && checkX <= p.x + p.w &&
+            this.y + this.h >= p.y - 5 && this.y + this.h <= p.y + 15) {
+          hasGround = true;
+          break;
+        }
       }
     }
-    if (onEdge) this.patrolDir *= -1;
+    if (!hasGround) this.patrolDir *= -1;
+
+    // 碰墙检测：检查前方是否有障碍物
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      if (p.destroyed) continue;
+      if (p.type === 'pipe') {
+        if (this.patrolDir > 0 && this.x + this.w + 2 >= p.x && this.x + this.w < p.x &&
+            this.y + this.h > p.y && this.y < p.y + p.h) {
+          this.patrolDir = -1;
+        } else if (this.patrolDir < 0 && this.x - 2 <= p.x + p.w && this.x > p.x + p.w &&
+            this.y + this.h > p.y && this.y < p.y + p.h) {
+          this.patrolDir = 1;
+        }
+      }
+    }
   };
   Enemy.prototype.draw = function(ctx, camX) {
     if (!this.active) return;
@@ -849,7 +862,7 @@
             p.used = true;
             p.shake = 10;
             p.coinAnim = 20;
-            if (Math.random() < 0.5 || p.questionIndex < 0) {
+            if (p.questionIndex < 0) {
               // 弹出金币
               player.score += 10;
               player.coins++;
@@ -986,16 +999,16 @@
       }
     }
 
-    // 题目计时器（清除选项）
+    // 题目计时器（选项不会自动消失，等玩家选择后才清除）
     if (this.showingQuestion) {
       this.questionTimer++;
-      if (this.questionTimer > 90) {
-        // 检查是否所有选项都已回答
+      // 只有在所有选项都已回答时才清除
+      if (this.questionTimer > 30) {
         var allAnswered = true;
         for (var i = 0; i < this.optionBlocks.length; i++) {
           if (!this.optionBlocks[i].answered) allAnswered = false;
         }
-        if (allAnswered || this.questionTimer > 150) {
+        if (allAnswered) {
           this.showingQuestion = false;
           this.optionBlocks = [];
           this.currentQuestionData = null;
