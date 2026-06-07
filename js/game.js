@@ -1054,9 +1054,7 @@
       canvas.height = 500;
       canvas.style.display = 'block';
       canvas.style.width = '100%';
-      canvas.style.maxWidth = '800px';
-      canvas.style.height = 'auto';
-      canvas.style.margin = '0 auto';
+      canvas.style.height = '100%';
       canvas.style.borderRadius = '12px';
       canvas.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
       container.appendChild(canvas);
@@ -1080,6 +1078,8 @@
           var newW = Math.min(800, container.clientWidth || 800);
           canvas.width = newW;
           canvas.height = 500;
+          canvas.style.width = '100%';
+          canvas.style.height = '100%';
           // 重新生成云朵位置
           for (var i = 0; i < engine.clouds.length; i++) {
             engine.clouds[i].x = rand(0, canvas.width);

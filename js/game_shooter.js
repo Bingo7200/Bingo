@@ -220,6 +220,7 @@
     this.y += this.vy;
     if (this.y > window.innerHeight + 60) {
       this.active = false;
+      this.missed = true; // 标记为漏过
     }
     if (!this.attackable && this.y >= 100 && this.y <= 400) {
       this.attackable = true;
@@ -584,12 +585,14 @@
 
     // 敌机
     var allEnemiesGone = true;
+    var anyMissed = false;
     for (i = this.enemies.length - 1; i >= 0; i--) {
       var enemy = this.enemies[i];
       enemy.update();
       if (enemy.active) {
         allEnemiesGone = false;
       } else {
+        if (enemy.missed) anyMissed = true;
         this.enemies.splice(i, 1);
         continue;
       }
@@ -651,8 +654,17 @@
       }
     }
 
-    // 如果所有敌机都飞走或击毁，且没有正确答题，则重新生成同一题
+    // 如果所有敌机都飞走或击毁，检查是否有漏过
     if (this.enemySpawned && this.enemies.length === 0 && this.state === 'playing') {
+      // 如果有漏过，扣除1条生命
+      if (anyMissed) {
+        this.player.lives--;
+        this._addFloatText(this.width / 2, this.height / 2, '漏过敌机！扣除1生命', COLORS.enemy);
+        if (this.player.lives <= 0) {
+          this._gameOver();
+          return;
+        }
+      }
       this.enemySpawned = false;
       this.spawnTimer = 60;
     }
