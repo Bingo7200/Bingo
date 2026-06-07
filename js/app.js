@@ -1840,7 +1840,7 @@ function renderDashboard() {
               </div>
               <div class="stat-card__value">${getUserXP()}</div>
               <div class="stat-card__trend stat-card__trend--up">
-                距下一等级还需 ${levelInfo.nextXP - getUserXP()} XP
+                ${levelInfo.nextXP > getUserXP() ? '距下一等级还需 ' + (levelInfo.nextXP - getUserXP()) + ' XP' : '已达到最高等级！'}
               </div>
             </div>
             <div class="stat-card">
