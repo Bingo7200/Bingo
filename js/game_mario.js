@@ -85,7 +85,8 @@
     this.facingRight = true;
     this.frame = 0;
     this.frameTimer = 0;
-    this.lives = 3;
+    this.hp = 100;
+    this.maxHp = 100;
     this.invincible = 0;
     this.dead = false;
     this.deadTimer = 0;
@@ -148,8 +149,9 @@
 
     // 掉出屏幕
     if (this.y > canvasH + 50) {
-      this.lives--;
-      if (this.lives <= 0) {
+      this.hp -= 25;
+      if (this.hp <= 0) {
+        this.hp = 0;
         this.dead = true; this.vy = -5;
       } else {
         this.respawn(100, 300);
@@ -374,8 +376,20 @@
       // 题目背景
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       var qText = this.question.question;
-      ctx.font = '12px sans-serif';
+      var qFontSize = 12;
+      ctx.font = qFontSize + 'px sans-serif';
       var qW = ctx.measureText(qText).width + 20;
+      // 如果题目文字太长，缩小字号
+      if (qW > 200) {
+        qFontSize = 10;
+        ctx.font = qFontSize + 'px sans-serif';
+        qW = ctx.measureText(qText).width + 20;
+      }
+      if (qW > 200) {
+        qFontSize = 8;
+        ctx.font = qFontSize + 'px sans-serif';
+        qW = Math.min(ctx.measureText(qText).width + 20, 200);
+      }
       ctx.fillRect(sx + this.w / 2 - qW / 2, optY - 30, qW, 24);
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
@@ -388,8 +402,16 @@
         ctx.strokeStyle = COLORS.qBlock;
         ctx.lineWidth = 2;
         ctx.strokeRect(ox, optY, optW, optH);
+        // 选项文字自动缩小
+        var optFontSize = 14;
+        ctx.font = 'bold ' + optFontSize + 'px monospace';
+        var optTextW = ctx.measureText(options[i]).width;
+        while (optFontSize > 8 && optTextW > optW - 6) {
+          optFontSize--;
+          ctx.font = 'bold ' + optFontSize + 'px monospace';
+          optTextW = ctx.measureText(options[i]).width;
+        }
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 14px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(options[i], ox + optW / 2, optY + optH / 2);
@@ -568,7 +590,7 @@
         var rect = canvas.getBoundingClientRect();
         var mx = e.clientX - rect.left, my = e.clientY - rect.top;
         if (mx > canvas.width / 2 - 80 && mx < canvas.width / 2 + 80 &&
-            my > canvas.height / 2 + 40 && my < canvas.height / 2 + 80) {
+            my > canvas.height / 2 + 60 && my < canvas.height / 2 + 100) {
           self.state = 'playing';
         }
       } else if (self.state === 'gameover' || self.state === 'complete') {
@@ -616,10 +638,11 @@
           if (self.callbacks.onCorrect) self.callbacks.onCorrect(res.index);
         } else {
           self.wrongCount++;
-          self.player.lives--;
+          self.player.hp -= 25;
           self.shakeScreen = 15;
           self.player.invincible = 120;
-          if (self.player.lives <= 0) {
+          if (self.player.hp <= 0) {
+            self.player.hp = 0;
             self.player.dead = true; self.player.vy = -5;
           }
           if (self.callbacks.onWrong) self.callbacks.onWrong(res.index);
@@ -737,14 +760,28 @@
   MarioGame.prototype._drawUI = function(ctx, cw, ch) {
     // 左上角信息
     ctx.fillStyle = COLORS.uiBg;
-    ctx.fillRect(8, 8, 180, 70);
+    ctx.fillRect(8, 8, 180, 80);
     ctx.fillStyle = COLORS.text;
     ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText('分数: ' + this.score, 16, 14);
     ctx.fillText('金币: ' + this.coins, 16, 34);
-    ctx.fillText('生命: ' + (this.player ? this.player.lives : 0), 16, 54);
+
+    // 血条
+    var hpRatio = this.player ? Math.max(0, this.player.hp / this.player.maxHp) : 0;
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(16, 56, 150, 14);
+    var hpColor = hpRatio > 0.5 ? '#44cc44' : (hpRatio > 0.25 ? '#cccc44' : '#cc4444');
+    ctx.fillStyle = hpColor;
+    ctx.fillRect(16, 56, 150 * hpRatio, 14);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(16, 56, 150, 14);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('HP: ' + (this.player ? Math.max(0, this.player.hp) : 0) + ' / ' + (this.player ? this.player.maxHp : 100), 91, 57);
 
     // 右上角进度
     var answered = this.blocks.filter(function(b) { return b.result !== null; }).length;
@@ -777,6 +814,15 @@
     ctx.font = '16px sans-serif';
     ctx.fillText('马里奥风格的平台跳跃答题游戏', cw / 2, ch / 2 - 20);
 
+    // 操作说明
+    ctx.fillStyle = '#ffdd88';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('操作说明', cw / 2, ch / 2 + 15);
+    ctx.fillStyle = '#cccccc';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('← → 移动角色  |  空格/↑ 跳跃（可二段跳）  |  ↓ 选择答案', cw / 2, ch / 2 + 38);
+    ctx.fillText('顶问号砖块弹出题目，站在选项上方按↓作答', cw / 2, ch / 2 + 56);
+
     // 角色动画预览
     ctx.save();
     ctx.translate(cw / 2, ch / 2 + 10);
@@ -795,7 +841,7 @@
     ctx.restore();
 
     // 开始按钮
-    var btnY = ch / 2 + 60;
+    var btnY = ch / 2 + 80;
     ctx.fillStyle = COLORS.qBlock;
     ctx.fillRect(cw / 2 - 80, btnY, 160, 40);
     ctx.strokeStyle = COLORS.qBlockLight;
@@ -877,8 +923,8 @@
       if (!container) { console.error('容器不存在: ' + containerId); return null; }
 
       var canvas = document.createElement('canvas');
-      canvas.width = container.clientWidth || 800;
-      canvas.height = container.clientHeight || 480;
+      canvas.width = Math.min(900, container.clientWidth || 900);
+      canvas.height = 600;
       canvas.style.width = '100%';
       canvas.style.height = '100%';
       canvas.style.display = 'block';

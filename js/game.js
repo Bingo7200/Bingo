@@ -151,6 +151,7 @@
     this.isCorrect = isCorrect;
     this.index = index;
     this.collected = false;
+    this.revealed = false;
     this.bobOffset = rand(0, Math.PI * 2);
     this.bobSpeed = 0.03;
     this.glowPhase = 0;
@@ -168,12 +169,17 @@
 
     ctx.save();
     // 发光效果
-    if (this.isCorrect) {
-      ctx.shadowColor = COLORS.correct;
-      ctx.shadowBlur = 16;
+    if (this.revealed) {
+      if (this.isCorrect) {
+        ctx.shadowColor = COLORS.correct;
+        ctx.shadowBlur = 16;
+      } else {
+        ctx.shadowColor = COLORS.wrong;
+        ctx.shadowBlur = 10;
+      }
     } else {
-      ctx.shadowColor = COLORS.wrong;
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = COLORS.gold;
+      ctx.shadowBlur = 12;
     }
 
     // 方块主体（圆角矩形）
@@ -191,10 +197,17 @@
     ctx.quadraticCurveTo(bx, by, bx + r, by);
     ctx.closePath();
 
-    var baseColor = this.isCorrect ? COLORS.correct : COLORS.wrong;
+    var baseColor, glowColor;
+    if (this.revealed) {
+      baseColor = this.isCorrect ? COLORS.correct : COLORS.wrong;
+      glowColor = this.isCorrect ? COLORS.correctGlow : COLORS.wrongGlow;
+    } else {
+      baseColor = COLORS.gold;
+      glowColor = '#ffecb3';
+    }
     var grad = ctx.createLinearGradient(bx, by, bx, by + bh);
     grad.addColorStop(0, baseColor);
-    grad.addColorStop(1, this.isCorrect ? COLORS.correctGlow : COLORS.wrongGlow);
+    grad.addColorStop(1, glowColor);
     ctx.fillStyle = grad;
     ctx.fill();
 
@@ -205,7 +218,14 @@
 
     // 文字
     ctx.fillStyle = COLORS.white;
-    ctx.font = 'bold 14px sans-serif';
+    var blockFontSize = 14;
+    ctx.font = 'bold ' + blockFontSize + 'px sans-serif';
+    var blockTextWidth = ctx.measureText(this.text).width;
+    while (blockTextWidth > bw - 8 && blockFontSize > 9) {
+      blockFontSize -= 1;
+      ctx.font = 'bold ' + blockFontSize + 'px sans-serif';
+      blockTextWidth = ctx.measureText(this.text).width;
+    }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(this.text, bx + bw / 2, by + bh / 2 + 1);
@@ -232,6 +252,8 @@
     this.frame = 0;       // 动画帧
     this.frameTimer = 0;
     this.lives = 3;
+    this.hp = 100;
+    this.maxHp = 100;
     this.invincible = 0;  // 无敌时间（帧数）
   }
 
@@ -533,6 +555,8 @@
     var groundY = c.height - 50;
     this.player = new Player(c.width / 2 - 14, groundY - 40);
     this.player.lives = 3;
+    this.player.hp = 100;
+    this.player.maxHp = 100;
     this._spawnBlocks();
     this._loop();
   };
@@ -567,7 +591,7 @@
       score: this.score,
       currentQ: this.currentQ + 1,
       totalQ: this.totalQ,
-      lives: this.player ? this.player.lives : 3,
+      hp: this.player ? this.player.hp : 100,
       correctCount: this.correctCount,
     };
   };
@@ -628,6 +652,7 @@
       if (b.collected) continue;
       if (aabb(pBox, b.getHitbox())) {
         b.collected = true;
+        b.revealed = true;
         if (b.isCorrect) {
           // 正确答案
           this.score += 10;
@@ -639,11 +664,11 @@
           setTimeout(function () { self._nextQuestion(); }, 600);
         } else {
           // 错误答案
-          this.player.lives--;
+          this.player.hp -= 25;
           this.player.invincible = 60; // 1秒无敌
           this._emitParticles(b.x + b.w / 2, b.y + b.h / 2, 'wrong');
           this.onWrong(this.currentQ);
-          if (this.player.lives <= 0) {
+          if (this.player.hp <= 0) {
             this.state = 'gameover';
             this.onComplete(this.score, this.totalQ);
           }
@@ -710,28 +735,55 @@
     ctx.textBaseline = 'top';
     ctx.fillText('第 ' + (engine.currentQ + 1) + ' / ' + engine.totalQ + ' 题', 12, 12);
 
-    // 生命值 - 右上
-    ctx.textAlign = 'right';
-    var hearts = '';
-    for (var i = 0; i < 3; i++) {
-      hearts += i < engine.player.lives ? '\u2764\u2764' : '\u2661\u2661';
+    // 血条 - 右上
+    var hpBarW = 120, hpBarH = 14;
+    var hpBarX = c.width - 12 - hpBarW;
+    var hpBarY = 12;
+    var hpRatio = Math.max(0, engine.player.hp / engine.player.maxHp);
+    // 血条背景
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    roundRect(ctx, hpBarX, hpBarY, hpBarW, hpBarH, 7);
+    ctx.fill();
+    // 血条前景（红色渐变）
+    if (hpRatio > 0) {
+      var hpGrad = ctx.createLinearGradient(hpBarX, hpBarY, hpBarX, hpBarY + hpBarH);
+      hpGrad.addColorStop(0, '#ff5252');
+      hpGrad.addColorStop(1, '#d32f2f');
+      ctx.fillStyle = hpGrad;
+      roundRect(ctx, hpBarX, hpBarY, Math.max(hpBarH, hpBarW * hpRatio), hpBarH, 7);
+      ctx.fill();
     }
-    ctx.font = '16px sans-serif';
-    ctx.fillText(hearts, c.width - 12, 12);
+    // 血条文字
+    ctx.fillStyle = COLORS.white;
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(engine.player.hp + '/' + engine.player.maxHp, hpBarX + hpBarW / 2, hpBarY + hpBarH / 2);
 
-    // 得分 - 右上（生命下方）
+    // 得分 - 右上（血条下方）
     ctx.fillStyle = COLORS.highlight;
     ctx.font = 'bold 14px sans-serif';
-    ctx.fillText('得分: ' + engine.score, c.width - 12, 34);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText('\u5f97\u5206: ' + engine.score, c.width - 12, 30);
 
     // 题目文字 - 顶部中间
     if (q) {
       ctx.fillStyle = COLORS.textDark;
-      ctx.font = 'bold 18px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
+      // 自动缩放字号以适应canvas宽度的80%
+      var qFontSize = 18;
+      var maxQWidth = c.width * 0.8;
+      ctx.font = 'bold ' + qFontSize + 'px sans-serif';
+      var qTextWidth = ctx.measureText(q.question).width;
+      while (qTextWidth > maxQWidth && qFontSize > 10) {
+        qFontSize -= 1;
+        ctx.font = 'bold ' + qFontSize + 'px sans-serif';
+        qTextWidth = ctx.measureText(q.question).width;
+      }
       // 背景条
-      var tw = ctx.measureText(q.question).width + 30;
+      var tw = qTextWidth + 30;
       var tx = (c.width - tw) / 2;
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       roundRect(ctx, tx, 6, tw, 32, 8);
@@ -862,8 +914,8 @@
     ctx.fillStyle = COLORS.black;
     ctx.font = '14px sans-serif';
     ctx.fillText('\u2190 \u2192 / A D \u79fb\u52a8  |  \u7a7a\u683c / \u2191 \u8df3\u8dc3', canvas.width / 2, py + 130);
-    ctx.fillText('\u7eff\u8272\u65b9\u5757 = \u6b63\u786e\u7b54\u6848  |  \u7ea2\u8272\u65b9\u5757 = \u9519\u8bef\u7b54\u6848', canvas.width / 2, py + 155);
-    ctx.fillText('\u5171 3 \u6761\u547d\uff0c\u78b0\u5230\u9519\u8bef\u7b54\u6848\u4f1a\u6263\u547d\u54e6\uff01', canvas.width / 2, py + 180);
+    ctx.fillText('\u91d1\u8272\u65b9\u5757\u4e2d\u85cf\u6709\u6b63\u786e\u7b54\u6848\uff0c\u78b0\u5230\u540e\u624d\u4f1a\u663e\u793a\u5bf9\u9519\uff01', canvas.width / 2, py + 155);
+    ctx.fillText('\u60a8\u6709 100 \u70b9\u8840\u91cf\uff0c\u78b0\u5230\u9519\u8bef\u7b54\u6848\u6263 25 \u70b9\u8840\u91cf\uff01', canvas.width / 2, py + 180);
 
     // 开始按钮
     var bw = 160, bh = 48;
@@ -1019,9 +1071,10 @@
       // 创建 Canvas
       var canvas = document.createElement('canvas');
       canvas.width = Math.min(800, container.clientWidth || 800);
-      canvas.height = Math.round(canvas.width * 0.6);
+      canvas.height = 500;
       canvas.style.display = 'block';
       canvas.style.width = '100%';
+      canvas.style.height = 'auto';
       canvas.style.borderRadius = '12px';
       canvas.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
       container.appendChild(canvas);
@@ -1044,7 +1097,7 @@
         resizeTimer = setTimeout(function () {
           var newW = Math.min(800, container.clientWidth || 800);
           canvas.width = newW;
-          canvas.height = Math.round(newW * 0.6);
+          canvas.height = 500;
           // 重新生成云朵位置
           for (var i = 0; i < engine.clouds.length; i++) {
             engine.clouds[i].x = rand(0, canvas.width);

@@ -109,7 +109,8 @@
     this.h = 36;
     this.speed = 5;
     this.shootCooldown = 0;
-    this.lives = 3;
+    this.hp = 100;
+    this.maxHp = 100;
     this.invincible = 0;
     this.engineFrame = 0;
   }
@@ -211,6 +212,7 @@
     this.vy = 0.8;
     this.active = true;
     this.hovered = false;
+    this.revealed = false;
     this.label = String.fromCharCode(65 + index); // A,B,C,D
   }
 
@@ -225,8 +227,14 @@
     if (!this.active) return;
     ctx.save();
     var x = this.x, y = this.y;
-    var color = this.isCorrect ? COLORS.correct : COLORS.enemy;
-    var glow = this.isCorrect ? COLORS.correctGlow : COLORS.enemyGlow;
+    var color, glow;
+    if (this.revealed) {
+      color = this.isCorrect ? COLORS.correct : COLORS.enemy;
+      glow = this.isCorrect ? COLORS.correctGlow : COLORS.enemyGlow;
+    } else {
+      color = COLORS.wrong;
+      glow = 'rgba(255,152,0,0.3)';
+    }
 
     // 外发光
     ctx.shadowColor = color;
@@ -261,18 +269,22 @@
 
     // 答案文字
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    // 文字换行处理
-    var maxWidth = this.w - 10;
+    // 自动缩小字号以适应宽度
+    var eFontSize = 13;
+    var maxEWidth = this.w - 10;
+    ctx.font = 'bold ' + eFontSize + 'px sans-serif';
+    while (ctx.measureText(this.text).width > maxEWidth && eFontSize > 8) {
+      eFontSize--;
+      ctx.font = 'bold ' + eFontSize + 'px sans-serif';
+    }
     var words = this.text;
-    if (ctx.measureText(words).width > maxWidth) {
-      // 简单截断加省略号
-      while (ctx.measureText(words + '...').width > maxWidth && words.length > 0) {
+    if (ctx.measureText(words).width > maxEWidth) {
+      while (ctx.measureText(words + '..').width > maxEWidth && words.length > 0) {
         words = words.slice(0, -1);
       }
-      words = words + '...';
+      words = words + '..';
     }
     ctx.fillText(words, x, y + 6);
 
@@ -439,7 +451,8 @@
     this.correctCount = 0;
     this.totalAnswered = 0;
     this.currentQIndex = 0;
-    this.player.lives = 3;
+    this.player.hp = 100;
+    this.player.maxHp = 100;
     this.player.x = this.width / 2;
     this.bullets = [];
     this.enemies = [];
@@ -568,6 +581,7 @@
         ) {
           bullet.active = false;
           this.totalAnswered++;
+          enemy.revealed = true;
 
           if (enemy.isCorrect) {
             // 正确
@@ -590,17 +604,18 @@
           } else {
             // 错误
             this.combo = 0;
-            this.player.lives--;
+            this.player.hp -= 25;
+            if (this.player.hp < 0) this.player.hp = 0;
             this.shakeTimer = 15;
             this.flashTimer = 10;
             this._spawnParticles(enemy.x, enemy.y, COLORS.enemy, 20, 'spark');
-            this._addFloatText(enemy.x, enemy.y, '-1 生命', COLORS.enemy);
+            this._addFloatText(enemy.x, enemy.y, '-25 HP', COLORS.enemy);
             if (this.callbacks.onWrong) this.callbacks.onWrong(this.currentQIndex);
 
             enemy.active = false;
             this.enemies.splice(i, 1);
 
-            if (this.player.lives <= 0) {
+            if (this.player.hp <= 0) {
               this._gameOver();
               return;
             }
@@ -691,13 +706,20 @@
       ctx.strokeRect(10, 10, w - 20, 50);
 
       ctx.fillStyle = COLORS.text;
-      ctx.font = 'bold 16px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       var qText = '第' + (this.currentQIndex + 1) + '/' + this.questions.length + '题：' + q.question;
-      // 截断
-      if (ctx.measureText(qText).width > w - 40) {
-        while (ctx.measureText(qText + '...').width > w - 40 && qText.length > 0) {
+      // 自动缩小字号以适应宽度
+      var qFontSize = 16;
+      ctx.font = 'bold ' + qFontSize + 'px sans-serif';
+      var maxQWidth = w - 40;
+      while (ctx.measureText(qText).width > maxQWidth && qFontSize > 10) {
+        qFontSize--;
+        ctx.font = 'bold ' + qFontSize + 'px sans-serif';
+      }
+      // 如果字号已经缩到最小仍然太长，则截断
+      if (ctx.measureText(qText).width > maxQWidth) {
+        while (ctx.measureText(qText + '...').width > maxQWidth && qText.length > 0) {
           qText = qText.slice(0, -1);
         }
         qText = qText + '...';
@@ -713,19 +735,37 @@
     ctx.textAlign = 'left';
     ctx.fillText('分数: ' + this.score, 20, 80);
 
-    // 生命图标
-    for (var li = 0; li < this.player.lives; li++) {
-      var lx = 20 + li * 28;
-      var ly = 100;
-      ctx.fillStyle = COLORS.life;
-      ctx.beginPath();
-      ctx.moveTo(lx, ly - 8);
-      ctx.lineTo(lx - 8, ly + 8);
-      ctx.lineTo(lx, ly + 4);
-      ctx.lineTo(lx + 8, ly + 8);
-      ctx.closePath();
-      ctx.fill();
+    // HP血条
+    var hpBarX = 20;
+    var hpBarY = 92;
+    var hpBarW = 120;
+    var hpBarH = 14;
+    // 血条背景
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(hpBarX - 1, hpBarY - 1, hpBarW + 2, hpBarH + 2);
+    // 血条底色
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(hpBarX, hpBarY, hpBarW, hpBarH);
+    // 血条当前值（红色渐变）
+    var hpRatio = Math.max(0, this.player.hp / this.player.maxHp);
+    var hpFillW = hpBarW * hpRatio;
+    if (hpFillW > 0) {
+      var hpGrad = ctx.createLinearGradient(hpBarX, 0, hpBarX + hpBarW, 0);
+      hpGrad.addColorStop(0, '#f44336');
+      hpGrad.addColorStop(1, '#ff5722');
+      ctx.fillStyle = hpGrad;
+      ctx.fillRect(hpBarX, hpBarY, hpFillW, hpBarH);
     }
+    // 血条边框
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(hpBarX, hpBarY, hpBarW, hpBarH);
+    // HP文字
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('HP ' + this.player.hp + '/' + this.player.maxHp, hpBarX + hpBarW / 2, hpBarY + hpBarH / 2);
 
     // 连击
     if (this.combo >= 2) {
@@ -822,8 +862,8 @@
     // 操作说明
     ctx.fillStyle = '#888888';
     ctx.font = '14px sans-serif';
-    ctx.fillText('← → 或 A D 移动战机 | 自动射击正确答案敌机', w / 2, h * 0.82);
-    ctx.fillText('绿色敌机是正确答案，红色是错误答案', w / 2, h * 0.88);
+    ctx.fillText('← → 或 A D 移动战机 | 自动射击 | 击中正确敌机得分', w / 2, h * 0.82);
+    ctx.fillText('击中错误敌机扣除HP，HP归零则游戏结束', w / 2, h * 0.88);
   };
 
   ShooterGame.prototype._drawGameOverScreen = function(ctx, w, h) {
@@ -923,10 +963,8 @@
       }
 
       var canvas = document.createElement('canvas');
-      var w = container.clientWidth || 800;
-      var h = container.clientHeight || 600;
-      canvas.width = w;
-      canvas.height = h;
+      canvas.width = Math.min(900, container.clientWidth || 900);
+      canvas.height = 600;
       canvas.style.width = '100%';
       canvas.style.height = '100%';
       canvas.style.display = 'block';
@@ -945,13 +983,12 @@
       window.addEventListener('resize', function() {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function() {
-          var nw = container.clientWidth || 800;
-          var nh = container.clientHeight || 600;
+          var nw = Math.min(900, container.clientWidth || 900);
           canvas.width = nw;
-          canvas.height = nh;
+          canvas.height = 600;
           game.width = nw;
-          game.height = nh;
-          game.player.y = nh - 80;
+          game.height = 600;
+          game.player.y = 600 - 80;
           game.player.x = clamp(game.player.x, game.player.w / 2, nw - game.player.w / 2);
         }, 200);
       });
