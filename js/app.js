@@ -1249,6 +1249,15 @@ function renderCourseDetail(courseId) {
 
   store.currentCourse = course;
 
+  // 如果有章节结构，展平lessons用于进度计算
+  if (course.chapters && !course._flatLessons) {
+    course._flatLessons = [];
+    course.chapters.forEach(ch => {
+      if (ch.lessons) course._flatLessons = course._flatLessons.concat(ch.lessons);
+    });
+  }
+  if (course._flatLessons) course.lessons = course._flatLessons;
+
   const progress = getCourseProgress(course.id);
   const completedCount = course.lessons.filter(l => store.progress[l.id] && store.progress[l.id].status === 'completed').length;
 
@@ -1305,7 +1314,36 @@ function renderCourseDetail(courseId) {
 function renderSidebarSections(course) {
   if (!course.lessons || course.lessons.length === 0) return '';
 
-  // 按类型分组
+  // 如果有章节结构，按章节分组
+  if (course.chapters && course.chapters.length > 0) {
+    let html = '';
+    course.chapters.forEach(chapter => {
+      if (!chapter.lessons || chapter.lessons.length === 0) return;
+      html += `
+        <div class="course-sidebar__section">
+          <div class="course-sidebar__section-title">📖 ${escapeHtml(chapter.title)}</div>
+          ${chapter.lessons.map(lesson => {
+            const isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
+            const isActive = store.currentLesson && store.currentLesson.id === lesson.id;
+            let itemClass = 'course-sidebar__item';
+            if (isActive) itemClass += ' course-sidebar__item--active';
+            if (isCompleted) itemClass += ' course-sidebar__item--completed';
+
+            return `
+              <div class="${itemClass}" data-action="select-lesson" data-course-id="${course.id}" data-lesson-id="${lesson.id}">
+                <span class="course-sidebar__item-icon">${getLessonTypeIcon(lesson.type)}</span>
+                <span class="course-sidebar__item-text">${escapeHtml(lesson.title)}</span>
+                <span class="course-sidebar__item-duration">${lesson.duration || 0}分钟</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    });
+    return html;
+  }
+
+  // 回退：按类型分组（旧结构）
   const sections = {};
   course.lessons.forEach(lesson => {
     const type = lesson.type || 'theory';
@@ -2213,7 +2251,7 @@ function handleGlobalClick(e) {
         }
         refreshQuizDisplay();
         if (quiz.gameMode) {
-          setTimeout(initGameMode, 100);
+          setTimeout(initGameMode, 200);
         }
       }
       break;
@@ -2229,7 +2267,7 @@ function handleGlobalClick(e) {
         }
         refreshQuizDisplay();
         if (quiz.gameMode) {
-          setTimeout(initGameMode, 100);
+          setTimeout(initGameMode, 200);
         }
       }
       break;

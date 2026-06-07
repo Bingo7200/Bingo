@@ -373,8 +373,17 @@
     this._initStars();
     this._bindEvents();
     this._loop = this._loop.bind(this);
-    requestAnimationFrame(this._loop);
+    this.animId = requestAnimationFrame(this._loop);
   }
+
+  ShooterGame.prototype.stop = function() {
+    this.state = 'start';
+    this._initialized = false;
+    if (this.animId) cancelAnimationFrame(this.animId);
+    this.animId = null;
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('keyup', this._onKeyUp);
+  };
 
   ShooterGame.prototype._initStars = function() {
     this.stars = [];
@@ -973,7 +982,7 @@
   ShooterGame.prototype._loop = function(timestamp) {
     this._update();
     this._draw();
-    requestAnimationFrame(this._loop);
+    this.animId = requestAnimationFrame(this._loop);
   };
 
   ShooterGame.prototype.destroy = function() {

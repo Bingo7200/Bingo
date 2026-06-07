@@ -651,8 +651,17 @@
     this._generateLevel();
     this._initInput();
     this._loop = this._loop.bind(this);
-    requestAnimationFrame(this._loop);
+    this.animId = requestAnimationFrame(this._loop);
   }
+
+  MarioGame.prototype.stop = function() {
+    this.state = 'start';
+    this._initialized = false;
+    if (this.animId) cancelAnimationFrame(this.animId);
+    this.animId = null;
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('keyup', this._onKeyUp);
+  };
 
   // ==================== 关卡生成 ====================
   MarioGame.prototype._generateLevel = function() {
@@ -876,7 +885,7 @@
   MarioGame.prototype._loop = function() {
     this._update();
     this._draw();
-    requestAnimationFrame(this._loop);
+    this.animId = requestAnimationFrame(this._loop);
   };
 
   MarioGame.prototype._update = function() {

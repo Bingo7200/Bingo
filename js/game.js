@@ -592,6 +592,7 @@
 
   GameEngine.prototype.stop = function () {
     this.state = 'start';
+    this._initialized = false;
     if (this.animId) cancelAnimationFrame(this.animId);
     this.animId = null;
     // 移除事件监听
