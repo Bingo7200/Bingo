@@ -587,6 +587,21 @@ function markLessonComplete(lessonId, type, score) {
   return xp;
 }
 
+function unmarkLessonComplete(lessonId) {
+  if (store.progress[lessonId]) {
+    const prev = store.progress[lessonId];
+    // 扣除之前获得的XP
+    const xp = calculateXP(prev.score, prev.type);
+    if (store.user) {
+      store.user.xp = Math.max(0, (store.user.xp || 0) - xp);
+      persistState();
+    }
+    // 删除进度记录
+    delete store.progress[lessonId];
+    persistState();
+  }
+}
+
 // ============================================================
 // 10. 成就检查
 // ============================================================
@@ -1421,6 +1436,9 @@ function renderTheoryContent(lesson, course) {
       ` : `
         <div style="margin-top:32px;text-align:center;">
           <span style="color:var(--color-success);font-weight:500;">\u{2705} 已完成此课时</span>
+          <button class="btn btn--sm btn--outline" style="margin-left:12px;" data-action="uncomplete-lesson" data-lesson-id="${lesson.id}">
+            撤销完成
+          </button>
         </div>
       `}
     </div>
@@ -1477,6 +1495,9 @@ function renderPracticeContent(lesson, course) {
       ` : `
         <div style="margin-top:16px;text-align:center;">
           <span style="color:var(--color-success);font-weight:500;">\u{2705} 已完成此练习</span>
+          <button class="btn btn--sm btn--outline" style="margin-left:12px;" data-action="uncomplete-lesson" data-lesson-id="${lesson.id}">
+            撤销完成
+          </button>
         </div>
       `}
     </div>
@@ -2060,6 +2081,17 @@ function handleGlobalClick(e) {
       break;
     }
 
+    case 'uncomplete-lesson': {
+      const lessonId = target.getAttribute('data-lesson-id');
+      if (lessonId) {
+        unmarkLessonComplete(lessonId);
+        showToast('已撤销完成状态', 'info');
+        // 重新渲染当前页面
+        handleRoute();
+      }
+      break;
+    }
+
     case 'prev-lesson': {
       const courseId = target.getAttribute('data-course-id');
       const lessonId = target.getAttribute('data-lesson-id');
@@ -2206,15 +2238,19 @@ function handleSelectOption(target) {
 }
 
 function refreshQuizDisplay() {
-  const quizContainer = document.querySelector('.quiz');
-  if (!quizContainer) return;
+  const quiz = store.currentQuiz;
+  if (!quiz) return;
 
-  // 重新渲染整个quiz
-  const temp = document.createElement('div');
-  temp.innerHTML = renderQuizQuestion();
-  const newQuiz = temp.querySelector('.quiz');
-  if (newQuiz && quizContainer.parentNode) {
-    quizContainer.parentNode.replaceChild(newQuiz, quizContainer);
+  // 找到内容区域容器
+  const contentArea = document.querySelector('.course-content__body');
+  if (!contentArea) return;
+
+  // 重新渲染整个测验内容
+  contentArea.innerHTML = renderQuizQuestion();
+
+  // 如果切换到游戏模式，初始化游戏
+  if (quiz.gameMode) {
+    setTimeout(initGameMode, 50);
   }
 }
 
