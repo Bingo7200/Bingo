@@ -994,8 +994,10 @@
             this.onComplete(this.score, this.questions.length);
           }
         }
-        // 1.5秒后清除选项
-        this.questionTimer = 90;
+        // 选完后立即清除所有选项
+        this.optionBlocks = [];
+        this.showingQuestion = false;
+        this.currentQuestionData = null;
       }
     }
 
