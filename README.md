@@ -6,7 +6,7 @@
 
 ## 🏗️ 技术栈
 
-- **前端**: 纯 HTML5 + CSS3 + JavaScript (ES6+)
+- **前端**: 纯 HTML5 + CSS3 + JavaScript (ES6+) + Canvas 2D
 - **Python运行时**: Pyodide (浏览器端Python)
 - **后端**: Cloudflare Pages Functions
 - **数据库**: Cloudflare D1 (SQLite)
@@ -18,11 +18,12 @@
 datalearn/
 ├── index.html              # 入口页面
 ├── css/
-│   └── style.css           # 完整样式系统（3500+行）
+│   └── style.css           # 完整样式系统（3600+行）
 ├── js/
-│   └── app.js              # 前端核心逻辑（2300+行）
+│   ├── app.js              # 前端核心逻辑（2400+行）
+│   └── game.js             # 游戏化学习模块（Canvas平台跳跃）
 ├── data/
-│   └── courses.js          # 6门课程数据（33个课时）
+│   └── courses.js          # 7门课程数据（39个课时）
 ├── functions/
 │   └── api/
 │       ├── user.js         # 用户API
@@ -100,7 +101,7 @@ npm run deploy
 2. 找到 D1 database bindings
 3. 添加绑定：变量名 `DB`，选择 `datalearn-db`
 
-## 📚 课程体系
+## 📚 课程体系（7门课程，39个课时）
 
 | 课程 | 难度 | 课时数 | 内容 |
 |------|------|--------|------|
@@ -110,11 +111,13 @@ npm run deploy
 | 📈 统计分析基础 | 进阶 | 5 | 描述统计、概率分布、假设检验 |
 | 📋 Excel数据处理 | 入门 | 5 | openpyxl读写、格式化 |
 | 💼 商务数据实战项目 | 高级 | 4 | 销售、客户、库存分析 |
+| 🛒 购物篮分析技术 | 进阶 | 6 | 关联规则、Apriori算法、mlxtend实战 |
 
 ## ✨ 核心功能
 
 - **互动学习**: 理论讲解 + 代码练习 + 测验评估
-- **在线编程**: 浏览器内运行Python（Pyodide），支持pandas/numpy
+- **在线编程**: 浏览器内运行Python（Pyodide），支持pandas/numpy/matplotlib
+- **🎮 游戏化学习**: Canvas平台跳跃小游戏，答题闯关模式
 - **成就系统**: 12项成就激励持续学习
 - **深色主题**: 支持浅色/深色主题切换
 - **响应式设计**: 适配桌面端和移动端

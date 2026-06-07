@@ -1152,6 +1152,31 @@ table {
   background: linear-gradient(90deg, var(--color-highlight), var(--color-highlight-light));
 }
 
+/* 课程卡片进度条（JS使用的类名） */
+.course-card__progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.course-card__progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.course-card__progress-fill::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: progressShimmer 2s ease-in-out infinite;
+}
+
 /* ============================================================
    6. 课程详情页
    ============================================================ */
@@ -2489,6 +2514,40 @@ table {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+
+/* Modal表单类名别名（JS使用的类名） */
+.modal__field {
+  margin-bottom: var(--space-5);
+}
+
+.modal__label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.modal__input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  transition: all var(--transition-fast);
+}
+
+.modal__input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.1);
+  outline: none;
+}
+
+.modal__input::placeholder {
+  color: var(--text-tertiary);
+}
   cursor: pointer;
 }
 
@@ -3507,4 +3566,92 @@ table {
   .course-sidebar {
     display: none;
   }
+}
+
+/* ============================================================
+   游戏模块样式
+   ============================================================ */
+.game-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  background: #000;
+}
+
+.game-container canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.game-mobile-controls {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.game-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: all var(--transition-fast);
+}
+
+.game-btn:active {
+  background: var(--color-accent);
+  color: var(--text-inverse);
+  transform: scale(0.9);
+}
+
+.game-btn--jump {
+  width: 72px;
+  height: 72px;
+  font-size: 1.2rem;
+  font-weight: var(--font-weight-bold);
+  background: var(--color-accent);
+  color: var(--text-inverse);
+  border-color: var(--color-accent);
+}
+
+.game-btn--jump:active {
+  background: var(--color-accent-dark);
+}
+
+@media (max-width: 768px) {
+  .game-mobile-controls {
+    display: flex;
+  }
+}
+
+.game-mode-banner {
+  text-align: center;
+  padding: var(--space-3) var(--space-4);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: var(--text-inverse);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+}
+
+.game-mode-banner span {
+  margin: 0 var(--space-2);
 }

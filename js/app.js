@@ -1501,6 +1501,7 @@ function renderQuizContent(lesson, course) {
     answers: [],
     submitted: false,
     results: [],
+    gameMode: false,
   };
 
   return renderQuizQuestion();
@@ -1520,6 +1521,15 @@ function renderQuizQuestion() {
   const isAnswered = quiz.answers[quiz.currentIndex] !== undefined;
 
   return `
+    <div class="game-mode-banner">
+      <span>🎮 游戏模式</span>
+      <button class="btn btn--sm btn--outline" style="border-color:rgba(255,255,255,0.5);color:inherit;" data-action="toggle-game-mode">
+        ${quiz.gameMode ? '切换为答题模式' : '切换为闯关模式'}
+      </button>
+      <span>⌨️ 答题模式</span>
+    </div>
+    ${quiz.gameMode ? renderGameMode(quiz) : ''}
+    ${!quiz.gameMode ? `
     <div class="quiz">
       <div class="quiz__progress">
         <div class="quiz__progress-bar">
@@ -1576,7 +1586,59 @@ function renderQuizQuestion() {
         </div>
       </div>
     </div>
+    ` : ''}
   `;
+}
+
+// 游戏模式渲染
+function renderGameMode(quiz) {
+  return `
+    <div id="game-area" class="game-container" style="margin: var(--space-4) auto;">
+      <p style="text-align:center;padding:40px;color:var(--text-secondary);">游戏加载中...</p>
+    </div>
+    <div id="game-mobile-controls" class="game-mobile-controls">
+      <button class="game-btn" data-action="game-left" id="game-btn-left">◀</button>
+      <button class="game-btn game-btn--jump" data-action="game-jump" id="game-btn-jump">跳</button>
+      <button class="game-btn" data-action="game-right" id="game-btn-right">▶</button>
+    </div>
+  `;
+}
+
+function initGameMode() {
+  const quiz = store.currentQuiz;
+  if (!quiz || !quiz.gameMode) return;
+  const container = document.getElementById('game-area');
+  if (!container || typeof DataLearnGame === 'undefined') return;
+
+  // 转换题目格式为游戏格式
+  const gameQuestions = quiz.questions.map(q => ({
+    question: q.question,
+    options: q.options,
+    correct: q.correct
+  }));
+
+  store.currentGame = DataLearnGame.create('game-area', gameQuestions, {
+    onCorrect: function(index) {
+      quiz.results[index] = true;
+      quiz.answers[index] = quiz.questions[index].correct;
+      showToast('回答正确！+10 XP', 'success');
+    },
+    onWrong: function(index) {
+      quiz.results[index] = false;
+      showToast('回答错误，继续加油！', 'error');
+    },
+    onComplete: function(score, total) {
+      quiz.submitted = true;
+      const xp = calculateXP(Math.round((score / total) * 100), 'quiz');
+      markLessonComplete(quiz.lessonId, 'quiz', Math.round((score / total) * 100));
+      showToast('游戏通关！获得 ' + xp + ' XP', 'success');
+      // 刷新显示结果
+      setTimeout(() => {
+        const contentArea = document.querySelector('.course-content__body');
+        if (contentArea) contentArea.innerHTML = renderQuizResult();
+      }, 1500);
+    }
+  });
 }
 
 function renderQuizResult() {
@@ -1952,6 +2014,37 @@ function handleGlobalClick(e) {
 
     case 'retry-quiz': {
       handleRetryQuiz();
+      break;
+    }
+
+    case 'toggle-game-mode': {
+      const quiz = store.currentQuiz;
+      if (quiz) {
+        quiz.gameMode = !quiz.gameMode;
+        if (store.currentGame) {
+          store.currentGame.stop();
+          store.currentGame = null;
+        }
+        refreshQuizDisplay();
+        if (quiz.gameMode) {
+          setTimeout(initGameMode, 100);
+        }
+      }
+      break;
+    }
+
+    case 'game-left': {
+      if (store.currentGame && store.currentGame.player) store.currentGame.player.movingLeft = true;
+      setTimeout(() => { if (store.currentGame && store.currentGame.player) store.currentGame.player.movingLeft = false; }, 200);
+      break;
+    }
+    case 'game-right': {
+      if (store.currentGame && store.currentGame.player) store.currentGame.player.movingRight = true;
+      setTimeout(() => { if (store.currentGame && store.currentGame.player) store.currentGame.player.movingRight = false; }, 200);
+      break;
+    }
+    case 'game-jump': {
+      if (store.currentGame && store.currentGame.player) store.currentGame.player.jump();
       break;
     }
 
