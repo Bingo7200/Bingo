@@ -115,6 +115,11 @@ function getLevelInfo(xp) {
     { level: 8, title: '宗师', minXP: 1200 },
     { level: 9, title: '传奇', minXP: 1800 },
     { level: 10, title: '学霸', minXP: 2500 },
+    { level: 11, title: '学神', minXP: 3500 },
+    { level: 12, title: '智者', minXP: 5000 },
+    { level: 13, title: '博学者', minXP: 7000 },
+    { level: 14, title: '知识之王', minXP: 10000 },
+    { level: 15, title: '全知全能', minXP: 15000 },
   ];
   let current = levels[0];
   let next = levels[1];
