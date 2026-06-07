@@ -396,7 +396,7 @@
     document.addEventListener('keydown', function(e) {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') self.input.left = true;
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') self.input.right = true;
-      if (e.key === ' ' || e.key === 'ArrowUp') self.input.shoot = true;
+      if (e.key === 'j' || e.key === 'J') self.input.shoot = true;
       if (e.key === 'Enter' && self.state === 'start') self._startGame();
       if (e.key === 'Enter' && (self.state === 'gameover' || self.state === 'victory')) self._restart();
     });
@@ -404,7 +404,7 @@
     document.addEventListener('keyup', function(e) {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') self.input.left = false;
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') self.input.right = false;
-      if (e.key === ' ' || e.key === 'ArrowUp') self.input.shoot = false;
+      if (e.key === 'j' || e.key === 'J') self.input.shoot = false;
     });
 
     // 触摸 / 鼠标
@@ -552,7 +552,7 @@
     // 玩家
     this.player.update(this.input, this.width);
 
-    // 手动射击（空格/上箭头/触摸中间区域）
+    // 手动射击（J键/触摸中间区域）
     if (this.input.shoot && this.player.shootCooldown <= 0) {
       this.bullets.push(new Bullet(this.player.x, this.player.y - this.player.h / 2));
       this.player.shootCooldown = 15;
@@ -834,7 +834,7 @@
     ctx.fillStyle = '#aaaaaa';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('方向键/A D移动 | 空格/↑ 手动射击 | 击中正确答案得分', w / 2, h - 12);
+    ctx.fillText('方向键/A D移动 | J键手动射击 | 击中正确答案得分', w / 2, h - 12);
     ctx.restore();
 
     // 移动端虚拟按钮提示
@@ -890,7 +890,7 @@
     // 操作说明
     ctx.fillStyle = '#888888';
     ctx.font = '14px sans-serif';
-    ctx.fillText('← → 或 A D 移动战机 | 空格/↑ 手动射击 | 击中正确敌机得分', w / 2, h * 0.82);
+    ctx.fillText('← → 或 A D 移动战机 | J键手动射击 | 击中正确敌机得分', w / 2, h * 0.82);
     ctx.fillText('敌机飞到中间区域才可被击中，击中错误扣除生命', w / 2, h * 0.88);
   };
 

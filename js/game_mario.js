@@ -71,12 +71,14 @@
     this.x += this.vx; this.y += this.vy; this.vy += 0.15;
     this.life -= this.decay;
   };
-  Particle.prototype.draw = function(ctx) {
+  Particle.prototype.draw = function(ctx, camX) {
+    camX = camX || 0;
     ctx.globalAlpha = Math.max(0, this.life);
     ctx.fillStyle = this.color;
+    var sx = this.x - camX;
     if (this.type === 'star') {
       ctx.save();
-      ctx.translate(this.x, this.y);
+      ctx.translate(sx, this.y);
       ctx.rotate(this.life * 10);
       ctx.beginPath();
       for (var i = 0; i < 5; i++) {
@@ -88,7 +90,7 @@
       ctx.closePath(); ctx.fill();
       ctx.restore();
     } else {
-      ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+      ctx.fillRect(sx - this.size / 2, this.y - this.size / 2, this.size, this.size);
     }
     ctx.globalAlpha = 1;
   };
@@ -185,12 +187,13 @@
     this.x = x; this.y = y; this.vx = 0; this.vy = 0;
     this.invincible = 120; this.grounded = false; this.doubleJump = true;
   };
-  Player.prototype.draw = function(ctx) {
+  Player.prototype.draw = function(ctx, camX) {
+    camX = camX || 0;
     if (this.dead) return;
     if (this.invincible > 0 && Math.floor(this.invincible / 4) % 2 === 0) return;
 
     ctx.save();
-    ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+    ctx.translate(this.x + this.w / 2 - camX, this.y + this.h / 2);
     if (!this.grounded) ctx.rotate(this.facingRight ? 0.15 : -0.15);
     if (!this.facingRight) ctx.scale(-1, 1);
 
@@ -310,6 +313,7 @@
   QuestionBlock.prototype.update = function() {
     if (this.shake > 0) this.shake--;
     if (this.coinAnim > 0) this.coinAnim--;
+    if (this.feedbackTimer > 0) this.feedbackTimer--;
   };
   QuestionBlock.prototype.checkSelection = function(player, keys, particles) {
     if (!this.showOptions || this.result) return null;
@@ -317,10 +321,10 @@
     keys.downPressed = false;
 
     var options = this.question.options;
-    var optW = 100, optH = 40, gap = 16;
+    var optW = 120, optH = 48, gap = 16;
     var totalW = options.length * optW + (options.length - 1) * gap;
     var startX = this.x + this.w / 2 - totalW / 2;
-    var optY = this.y - 90;
+    var optY = this.y - 100;
 
     for (var i = 0; i < options.length; i++) {
       var ox = startX + i * (optW + gap);
@@ -330,6 +334,7 @@
         var correct = (i === this.question.correctIndex);
         this.result = correct ? 'correct' : 'wrong';
         this.showOptions = false;
+        this.feedbackTimer = 60; // 1秒反馈显示
         // 粒子特效
         var color = correct ? COLORS.qBlockCorrect : COLORS.qBlockWrong;
         for (var p = 0; p < 15; p++) {
@@ -391,10 +396,10 @@
     // 选项显示
     if (this.showOptions && !this.result) {
       var options = this.question.options;
-      var optW = 100, optH = 40, gap = 16;
+      var optW = 120, optH = 48, gap = 16;
       var totalW = options.length * optW + (options.length - 1) * gap;
       var startX = sx + this.w / 2 - totalW / 2;
-      var optY = sy - 90;
+      var optY = sy - 100;
 
       // 题目背景
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -431,8 +436,18 @@
         ctx.textBaseline = 'middle';
         var optFontSize = 12;
         ctx.font = 'bold ' + optFontSize + 'px monospace';
-        drawWrappedText(ctx, options[i], ox + optW / 2, optY + optH / 2, optW - 8, 14);
+        drawWrappedText(ctx, options[i], ox + optW / 2, optY + optH / 2, optW - 10, 14);
       }
+    }
+
+    // 答题反馈文字
+    if (this.result && this.feedbackTimer > 0) {
+      ctx.fillStyle = this.result === 'correct' ? '#44ff44' : '#ff4444';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      var fbText = this.result === 'correct' ? '回答正确！' : '回答错误！';
+      ctx.fillText(fbText, sx + this.w / 2, sy - 20);
     }
   };
 
@@ -672,10 +687,10 @@
       c.update();
       if (rectIntersect(self.player, c)) {
         self.coins++;
-        c.x = -9999; // 移除
         for (var p = 0; p < 8; p++) {
-          self.particles.push(new Particle(c.x + 8, c.y, COLORS.coin, 'star'));
+          self.particles.push(new Particle(c.x + c.w / 2, c.y + c.h / 2, COLORS.coin, 'star'));
         }
+        c.x = -9999; // 移除
       }
     });
 
@@ -761,7 +776,7 @@
     this.player.draw(ctx, this.camX);
 
     // 粒子
-    this.particles.forEach(function(p) { p.draw(ctx); });
+    this.particles.forEach(function(p) { p.draw(ctx, self.camX); });
 
     ctx.restore();
 
@@ -937,6 +952,9 @@
     create: function(containerId, questions, callbacks) {
       var container = document.getElementById(containerId);
       if (!container) { console.error('容器不存在: ' + containerId); return null; }
+
+      // 清空容器（移除"游戏加载中"等文字）
+      container.innerHTML = '';
 
       var canvas = document.createElement('canvas');
       canvas.width = Math.min(900, container.clientWidth || 900);

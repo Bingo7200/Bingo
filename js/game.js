@@ -221,7 +221,7 @@
     var blockFontSize = 14;
     ctx.font = 'bold ' + blockFontSize + 'px sans-serif';
     var blockTextWidth = ctx.measureText(this.text).width;
-    while (blockTextWidth > bw - 8 && blockFontSize > 9) {
+    while (blockTextWidth > bw - 16 && blockFontSize > 9) {
       blockFontSize -= 1;
       ctx.font = 'bold ' + blockFontSize + 'px sans-serif';
       blockTextWidth = ctx.measureText(this.text).width;
@@ -504,11 +504,11 @@
     var q = this.questions[this.currentQ];
     var c = this.canvas;
     var count = q.options.length;
-    var bw = 80, bh = 40;
-    var gap = 20;
+    var bw = 100, bh = 50;
+    var gap = 30;
     var totalW = count * bw + (count - 1) * gap;
     var startX = (c.width - totalW) / 2;
-    var baseY = c.height * 0.65;
+    var baseY = c.height * 0.62;
 
     this.blocks = [];
     for (var i = 0; i < count; i++) {
@@ -1047,6 +1047,9 @@
         console.error('\u6570\u636e\u5192\u9669\u5bb6: \u627e\u4e0d\u5230\u5bb9\u5668\u5143\u7d20 #' + containerId);
         return null;
       }
+
+      // 清空容器（移除"游戏加载中"等文字）
+      container.innerHTML = '';
 
       // 创建 Canvas
       var canvas = document.createElement('canvas');
