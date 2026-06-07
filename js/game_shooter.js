@@ -551,10 +551,10 @@
     // 玩家
     this.player.update(this.input, this.width);
 
-    // 自动射击
-    if (this.player.shootCooldown <= 0) {
+    // 手动射击（空格/上箭头/触摸中间区域）
+    if (this.input.shoot && this.player.shootCooldown <= 0) {
       this.bullets.push(new Bullet(this.player.x, this.player.y - this.player.h / 2));
-      this.player.shootCooldown = 12;
+      this.player.shootCooldown = 15;
     }
 
     // 子弹
@@ -822,7 +822,7 @@
     ctx.fillStyle = '#aaaaaa';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('方向键/A D移动 | 自动射击 | 击中正确答案得分', w / 2, h - 12);
+    ctx.fillText('方向键/A D移动 | 空格/↑ 手动射击 | 击中正确答案得分', w / 2, h - 12);
     ctx.restore();
 
     // 移动端虚拟按钮提示
@@ -878,8 +878,8 @@
     // 操作说明
     ctx.fillStyle = '#888888';
     ctx.font = '14px sans-serif';
-    ctx.fillText('← → 或 A D 移动战机 | 自动射击 | 击中正确敌机得分', w / 2, h * 0.82);
-    ctx.fillText('击中错误敌机扣除HP，HP归零则游戏结束', w / 2, h * 0.88);
+    ctx.fillText('← → 或 A D 移动战机 | 空格/↑ 手动射击 | 击中正确敌机得分', w / 2, h * 0.82);
+    ctx.fillText('敌机飞到中间区域才可被击中，击中错误扣除生命', w / 2, h * 0.88);
   };
 
   ShooterGame.prototype._drawGameOverScreen = function(ctx, w, h) {
