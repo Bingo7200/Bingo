@@ -1664,18 +1664,34 @@ function renderChapterLessons(course, chapterIdx) {
 function renderSidebarSections(course) {
   if (!course.lessons || course.lessons.length === 0) return '';
 
-  // 如果有章节结构，左边只显示章节标题（简洁）
+  // 如果有章节结构，显示可折叠的章节+课时
   if (course.chapters && course.chapters.length > 0) {
     let html = '';
     course.chapters.forEach((chapter, idx) => {
       if (!chapter.lessons || chapter.lessons.length === 0) return;
       var chCompleted = chapter.lessons.filter(l => store.progress[l.id] && store.progress[l.id].status === 'completed').length;
+      var isExpanded = store.currentLesson && chapter.lessons.some(l => l.id === store.currentLesson.id);
       html += `
         <div class="course-sidebar__section">
-          <div class="course-sidebar__item" data-action="select-chapter" data-course-id="${course.id}" data-chapter-idx="${idx}" style="cursor:pointer;font-weight:500;">
-            <span class="course-sidebar__item-icon">📖</span>
-            <span class="course-sidebar__item-text">${escapeHtml(chapter.title)}</span>
-            <span class="course-sidebar__item-duration" style="color:var(--text-tertiary);">${chCompleted}/${chapter.lessons.length}</span>
+          <div class="course-sidebar__section-title" data-action="toggle-chapter-sidebar" data-chapter-idx="${idx}" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+            <span>📖 ${escapeHtml(chapter.title)}</span>
+            <span style="font-size:12px;color:var(--text-tertiary);">${chCompleted}/${chapter.lessons.length} ${isExpanded ? '▲' : '▼'}</span>
+          </div>
+          <div class="chapter-lessons-list" id="sidebar-chapter-${idx}" style="display:${isExpanded ? 'block' : 'none'};">
+            ${chapter.lessons.map(lesson => {
+              const isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
+              const isActive = store.currentLesson && store.currentLesson.id === lesson.id;
+              let itemClass = 'course-sidebar__item';
+              if (isActive) itemClass += ' course-sidebar__item--active';
+              if (isCompleted) itemClass += ' course-sidebar__item--completed';
+              return `
+                <div class="${itemClass}" data-action="select-lesson" data-course-id="${course.id}" data-lesson-id="${lesson.id}">
+                  <span class="course-sidebar__item-icon">${getLessonTypeIcon(lesson.type)}</span>
+                  <span class="course-sidebar__item-text">${escapeHtml(lesson.title)}</span>
+                  <span class="course-sidebar__item-duration">${lesson.duration || 0}分钟</span>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
       `;
@@ -2677,6 +2693,21 @@ function handleGlobalClick(e) {
         if (course) {
           const overview = document.getElementById('course-chapters-overview');
           if (overview) overview.innerHTML = renderCourseChaptersOverview(course);
+        }
+      }
+      break;
+    }
+
+    case 'toggle-chapter-sidebar': {
+      const chapterIdx = target.getAttribute('data-chapter-idx');
+      if (chapterIdx !== null) {
+        const list = document.getElementById('sidebar-chapter-' + chapterIdx);
+        if (list) {
+          var isHidden = list.style.display === 'none';
+          list.style.display = isHidden ? 'block' : 'none';
+          // 更新箭头
+          var arrow = target.querySelector('span:last-child');
+          if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
         }
       }
       break;
