@@ -508,7 +508,7 @@ async function loginUser(username, password) {
   return true;
 }
 
-function registerUser(username, nickname, password) {
+async function registerUser(username, nickname, password) {
   if (!username || !nickname || !password) {
     showToast('请填写所有必填字段', 'warning');
     return false;
@@ -520,6 +520,16 @@ function registerUser(username, nickname, password) {
   if (password.length < 4) {
     showToast('密码至少需要4个字符', 'warning');
     return false;
+  }
+
+  // 如果配置了Token，先检查云端是否已有该用户
+  if (store.githubToken) {
+    showToast('正在检查云端...', 'info');
+    var existingGist = await findUserGist(username);
+    if (existingGist) {
+      showToast('该用户名已在云端存在，请直接登录', 'error');
+      return false;
+    }
   }
 
   const users = JSON.parse(localStorage.getItem('datalearn_users') || '{}');
@@ -552,20 +562,19 @@ function registerUser(username, nickname, password) {
   persistState();
   renderNavbar();
   closeModal();
-  showToast(`注册成功，欢迎 ${nickname}！`, 'success');
+  showToast('注册成功，欢迎 ' + nickname + '！', 'success');
 
   // 尝试保存到云端
   if (store.githubToken) {
-    saveUserToCloud(username, {
+    var ok = await saveUserToCloud(username, {
       id: userId,
       password: password,
       nickname: nickname,
       avatar: null,
       xp: 0,
       streak: 0,
-    }, password).then(function(ok) {
-      if (ok) showToast('数据已同步到云端', 'success');
-    });
+    }, password);
+    if (ok) showToast('数据已同步到云端', 'success');
   }
 
   return true;
