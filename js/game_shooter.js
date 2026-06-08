@@ -464,8 +464,15 @@
     this._initialized = false;
     if (this.animId) cancelAnimationFrame(this.animId);
     this.animId = null;
-    document.removeEventListener('keydown', this._onKeyDown);
-    document.removeEventListener('keyup', this._onKeyUp);
+    // 移除所有事件监听
+    if (this._keyDownHandler) document.removeEventListener('keydown', this._keyDownHandler);
+    if (this._keyUpHandler) document.removeEventListener('keyup', this._keyUpHandler);
+    if (this.canvas) {
+      if (this._touchStartHandler) this.canvas.removeEventListener('touchstart', this._touchStartHandler);
+      if (this._touchMoveHandler) this.canvas.removeEventListener('touchmove', this._touchMoveHandler);
+      if (this._touchEndHandler) this.canvas.removeEventListener('touchend', this._touchEndHandler);
+      if (this._mouseDownHandler) this.canvas.removeEventListener('mousedown', this._mouseDownHandler);
+    }
   };
 
   ShooterGame.prototype._initStars = function() {
@@ -484,24 +491,26 @@
     var self = this;
     var canvas = this.canvas;
 
-    // 键盘
-    document.addEventListener('keydown', function(e) {
+    // 保存事件处理函数引用以便移除
+    this._keyDownHandler = function(e) {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') self.input.left = true;
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') self.input.right = true;
       if (e.key === 'j' || e.key === 'J') self.input.shoot = true;
       if (e.key === 'Enter' && self.state === 'start') self._startGame();
       if (e.key === 'Enter' && (self.state === 'gameover' || self.state === 'victory')) self._restart();
-    });
-
-    document.addEventListener('keyup', function(e) {
+    };
+    this._keyUpHandler = function(e) {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') self.input.left = false;
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') self.input.right = false;
       if (e.key === 'j' || e.key === 'J') self.input.shoot = false;
-    });
+    };
+
+    document.addEventListener('keydown', this._keyDownHandler);
+    document.addEventListener('keyup', this._keyUpHandler);
 
     // 触摸 / 鼠标
     var touchStartX = 0;
-    canvas.addEventListener('touchstart', function(e) {
+    this._touchStartHandler = function(e) {
       e.preventDefault();
       e.stopPropagation();
       var rect = canvas.getBoundingClientRect();
@@ -520,9 +529,8 @@
         if (self.state === 'start') self._startGame();
         if (self.state === 'gameover' || self.state === 'victory') self._restart();
       }
-    }, { passive: false });
-
-    canvas.addEventListener('touchmove', function(e) {
+    };
+    this._touchMoveHandler = function(e) {
       e.preventDefault();
       if (!self._isMobile) return;
       var rect = canvas.getBoundingClientRect();
@@ -532,20 +540,23 @@
       self.input.right = false;
       if (tx < self.width * 0.25) self.input.left = true;
       else if (tx > self.width * 0.75) self.input.right = true;
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', function(e) {
+    };
+    this._touchEndHandler = function(e) {
       e.preventDefault();
       self.input.left = false;
       self.input.right = false;
       self.input.shoot = false;
-    }, { passive: false });
-
-    canvas.addEventListener('mousedown', function(e) {
+    };
+    this._mouseDownHandler = function(e) {
       e.stopPropagation();
       if (self.state === 'start') self._startGame();
       if (self.state === 'gameover' || self.state === 'victory') self._restart();
-    });
+    };
+
+    canvas.addEventListener('touchstart', this._touchStartHandler, { passive: false });
+    canvas.addEventListener('touchmove', this._touchMoveHandler, { passive: false });
+    canvas.addEventListener('touchend', this._touchEndHandler, { passive: false });
+    canvas.addEventListener('mousedown', this._mouseDownHandler);
   };
 
   ShooterGame.prototype._startGame = function() {

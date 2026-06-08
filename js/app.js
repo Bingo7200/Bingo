@@ -95,8 +95,8 @@ function formatDuration(minutes) {
 }
 
 function calculateXP(score, type) {
-  const base = { theory: 5, practice: 10, quiz: 15 };
-  const b = base[type] || 5;
+  const base = { theory: 2, practice: 5, quiz: 8 };
+  const b = base[type] || 2;
   if (type === 'quiz' && score !== undefined) {
     return Math.round(b * (score / 100));
   }
@@ -1629,14 +1629,52 @@ function renderPracticeContent(lesson, course) {
 function renderQuizContent(lesson, course) {
   const questions = lesson.questions || [];
   if (questions.length === 0) {
-    return '<p>暂无测验题目</p>';
+    const isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
+    return `
+      <div class="quiz">
+        <div class="quiz__card" style="text-align:center;padding:48px 24px;">
+          <div style="font-size:48px;margin-bottom:16px;">\u{1F4DD}</div>
+          <h3 style="margin-bottom:12px;">该测验暂无题目</h3>
+          <p style="color:var(--text-secondary);margin-bottom:24px;">你可以直接标记为已完成，继续学习下一节。</p>
+          ${!isCompleted ? `
+            <button class="btn btn--primary" data-action="complete-lesson" data-lesson-id="${lesson.id}" data-type="quiz">
+              标记为已完成
+            </button>
+          ` : `
+            <span style="color:var(--color-success);font-weight:500;">\u{2705} 已完成</span>
+          `}
+        </div>
+      </div>
+    `;
   }
+
+  // 打乱每道题的选项顺序，存储映射关系
+  var shuffledQuestions = questions.map(function(q) {
+    var indices = q.options.map(function(_, i) { return i; });
+    // Fisher-Yates 洗牌
+    for (var i = indices.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = indices[i];
+      indices[i] = indices[j];
+      indices[j] = tmp;
+    }
+    var newCorrect = indices.indexOf(q.correct);
+    var shuffledOptions = indices.map(function(idx) { return q.options[idx]; });
+    return {
+      question: q.question,
+      options: shuffledOptions,
+      correct: newCorrect,
+      explanation: q.explanation,
+      code: q.code,
+      _originalIndices: indices // 保留原始映射
+    };
+  });
 
   // 初始化测验状态
   store.currentQuiz = {
     lessonId: lesson.id,
     courseId: course.id,
-    questions: questions,
+    questions: shuffledQuestions,
     currentIndex: 0,
     answers: [],
     submitted: false,
