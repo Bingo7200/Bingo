@@ -1,6 +1,89 @@
 ;(function() {
   'use strict';
 
+  // 音效系统
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var audioCtx = AudioCtx ? new AudioCtx() : null;
+
+  function playSound(type) {
+    if (!audioCtx) return;
+    try {
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      switch(type) {
+        case 'jump':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.1);
+          break;
+        case 'collect':
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.05);
+          osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.2);
+          break;
+        case 'wrong':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.2);
+          break;
+        case 'shoot':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.1);
+          break;
+        case 'explosion':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.3);
+          break;
+        case 'bump':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.1);
+          break;
+        case 'win':
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+          osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.2);
+          osc.frequency.setValueAtTime(1047, audioCtx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.5);
+          break;
+      }
+    } catch(e) {}
+  }
+
   // ==================== 常量与工具 ====================
   var COLORS = {
     bg: '#0a0a1a',
@@ -565,6 +648,7 @@
     if (this.input.shoot && this.player.shootCooldown <= 0) {
       this.bullets.push(new Bullet(this.player.x, this.player.y - this.player.h / 2));
       this.player.shootCooldown = 15;
+      playSound('shoot');
     }
 
     // 子弹
@@ -634,6 +718,7 @@
               this._addFloatText(this.width / 2, this.height / 2, this.combo + '连击！', COLORS.combo);
             }
             if (this.callbacks.onCorrect) this.callbacks.onCorrect(this.currentQIndex);
+            playSound('explosion');
 
             this.feedbackText = '回答正确！';
             this.feedbackTimer = 90;
@@ -647,6 +732,7 @@
             this._spawnParticles(enemy.x, enemy.y, COLORS.enemy, 20, 'spark');
             this._addFloatText(enemy.x, enemy.y, '-1 生命', COLORS.enemy);
             if (this.callbacks.onWrong) this.callbacks.onWrong(this.currentQIndex);
+            playSound('wrong');
 
             var correctIdx = this.questions[this.currentQIndex].correct;
             this.feedbackText = '回答错误！正确答案是 ' + String.fromCharCode(65 + correctIdx);

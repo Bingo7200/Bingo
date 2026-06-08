@@ -1,6 +1,89 @@
 ;(function() {
   'use strict';
 
+  // 音效系统
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var audioCtx = AudioCtx ? new AudioCtx() : null;
+
+  function playSound(type) {
+    if (!audioCtx) return;
+    try {
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      switch(type) {
+        case 'jump':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.1);
+          break;
+        case 'collect':
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.05);
+          osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.2);
+          break;
+        case 'wrong':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.2);
+          break;
+        case 'shoot':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.1);
+          break;
+        case 'explosion':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.3);
+          break;
+        case 'bump':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.1);
+          break;
+        case 'win':
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+          osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.2);
+          osc.frequency.setValueAtTime(1047, audioCtx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.5);
+          break;
+      }
+    } catch(e) {}
+  }
+
   // ==================== 颜色常量 ====================
   var COLORS = {
     sky: '#5c94fc', skyBottom: '#92b4ff',
@@ -115,8 +198,10 @@
     if (keys.jumpPressed) {
       if (this.grounded) {
         this.vy = this.jumpForce; this.grounded = false; this.canDoubleJump = true;
+        playSound('jump');
       } else if (this.canDoubleJump) {
         this.vy = this.jumpForce * 0.8; this.canDoubleJump = false;
+        playSound('jump');
       }
       keys.jumpPressed = false;
     }
@@ -942,6 +1027,7 @@
             p.destroyed = true;
             player.score += 5;
             this.score = player.score;
+            playSound('bump');
             for (var k = 0; k < 8; k++) {
               this.particles.push(new Particle(p.x + p.w / 2, p.y + p.h / 2, COLORS.brick, 'spark'));
             }
@@ -1085,6 +1171,7 @@
           this.score = player.score;
           this.correctCount++;
           this.onCorrect(this.currentQ);
+          playSound('collect');
           for (var k = 0; k < 15; k++) {
             this.particles.push(new Particle(ob.x + ob.w / 2, ob.y + ob.h / 2, COLORS.correct, 'star'));
           }
@@ -1097,6 +1184,7 @@
           player.invincible = 90;
           this.lives = player.lives;
           this.onWrong(this.currentQ);
+          playSound('wrong');
           this.shakeScreen = 10;
           for (var k = 0; k < 10; k++) {
             this.particles.push(new Particle(ob.x + ob.w / 2, ob.y + ob.h / 2, COLORS.wrong, 'spark'));
