@@ -1577,42 +1577,8 @@ function renderCourseDetail(courseId) {
 }
 
 function renderCourseChaptersOverview(course) {
-  // 无章节结构的课程，右边显示课程描述，不显示课时列表（左边已有）
-  if (!course.chapters || course.chapters.length === 0) {
-    return `<p style="color:var(--text-secondary);line-height:1.6;">${escapeHtml(course.description)}</p><p style="margin-top:16px;color:var(--text-tertiary);">请从左侧课时列表中选择开始学习。</p>`;
-  }
-
-  // 有章节结构的课程，显示章节卡片
-  return `
-    <p style="margin-bottom:20px;color:var(--text-secondary);">${escapeHtml(course.description)}</p>
-    <div style="display:grid;gap:16px;">
-      ${course.chapters.map(function(chapter, idx) {
-        var chCompleted = 0;
-        var chTotal = chapter.lessons ? chapter.lessons.length : 0;
-        if (chapter.lessons) {
-          chapter.lessons.forEach(function(l) {
-            if (store.progress[l.id] && store.progress[l.id].status === 'completed') chCompleted++;
-          });
-        }
-        var chProgress = chTotal > 0 ? Math.round((chCompleted / chTotal) * 100) : 0;
-        return `
-          <div class="chapter-card" data-action="select-chapter" data-course-id="${course.id}" data-chapter-idx="${idx}" style="cursor:pointer;padding:20px;border:1px solid var(--border-color);border-radius:12px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
-            <div style="display:flex;align-items:center;gap:16px;">
-              <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--color-primary),var(--color-accent));display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:bold;">${idx + 1}</div>
-              <div style="flex:1;">
-                <div style="font-weight:600;font-size:16px;margin-bottom:4px;">${escapeHtml(chapter.title)}</div>
-                <div style="font-size:13px;color:var(--text-secondary);">${chTotal} 课时 · 已完成 ${chCompleted}/${chTotal}</div>
-                <div style="margin-top:8px;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;">
-                  <div style="height:100%;width:${chProgress}%;background:var(--color-primary);border-radius:2px;transition:width 0.3s;"></div>
-                </div>
-              </div>
-              <span style="color:var(--text-tertiary);font-size:18px;">→</span>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
+  // 统一显示课程描述，不显示章节卡片（左边目录足够）
+  return `<p style="color:var(--text-secondary);line-height:1.6;">${escapeHtml(course.description)}</p><p style="margin-top:16px;color:var(--text-tertiary);">请从左侧目录中选择章节和课时开始学习。</p>`;
 }
 
 function renderChapterLessons(course, chapterIdx) {
@@ -2705,9 +2671,13 @@ function handleGlobalClick(e) {
         if (list) {
           var isHidden = list.style.display === 'none';
           list.style.display = isHidden ? 'block' : 'none';
-          // 更新箭头
+          // 更新箭头（保留进度数字）
           var arrow = target.querySelector('span:last-child');
-          if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
+          if (arrow) {
+            var parts = arrow.textContent.split(' ');
+            var progress = parts[0]; // "3/5"
+            arrow.textContent = progress + ' ' + (isHidden ? '▲' : '▼');
+          }
         }
       }
       break;
