@@ -860,6 +860,7 @@
 
     // 点击开始/重来
     canvas.addEventListener('click', function(e) {
+      e.stopPropagation();
       var rect = canvas.getBoundingClientRect();
       var scaleX = canvas.width / rect.width;
       var scaleY = canvas.height / rect.height;

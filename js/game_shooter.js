@@ -503,6 +503,7 @@
     var touchStartX = 0;
     canvas.addEventListener('touchstart', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       var rect = canvas.getBoundingClientRect();
       var touch = e.touches[0];
       var tx = touch.clientX - rect.left;
@@ -541,6 +542,7 @@
     }, { passive: false });
 
     canvas.addEventListener('mousedown', function(e) {
+      e.stopPropagation();
       if (self.state === 'start') self._startGame();
       if (self.state === 'gameover' || self.state === 'victory') self._restart();
     });
@@ -613,13 +615,13 @@
 
     if (this.currentQIndex >= this.questions.length) {
       this.state = 'victory';
-      if (this.callbacks.onVictory) this.callbacks.onVictory(this.score, this.correctCount, this.questions.length);
+      if (this.callbacks.onComplete) this.callbacks.onComplete(this.score, this.questions.length);
     }
   };
 
   ShooterGame.prototype._gameOver = function() {
     this.state = 'gameover';
-    if (this.callbacks.onGameOver) this.callbacks.onGameOver(this.score, this.correctCount, this.totalAnswered);
+    if (this.callbacks.onComplete) this.callbacks.onComplete(this.score, this.questions.length);
   };
 
   ShooterGame.prototype._update = function() {

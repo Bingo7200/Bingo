@@ -521,15 +521,18 @@
 
     // 鼠标/触摸点击（用于按钮）
     this._onClick = function (e) {
+      e.stopPropagation();
       self._handleClick(e);
     };
     c.addEventListener('click', this._onClick);
     c.addEventListener('touchstart', function (e) {
       e.preventDefault();
+      e.stopPropagation();
       self._handleTouch(e);
     }, { passive: false });
     c.addEventListener('touchend', function (e) {
       e.preventDefault();
+      e.stopPropagation();
       self._handleTouchEnd(e);
     }, { passive: false });
   };
@@ -1001,8 +1004,8 @@
     ctx.fillStyle = COLORS.black;
     ctx.font = '14px sans-serif';
     ctx.fillText('\u2190 \u2192 / A D \u79fb\u52a8  |  \u7a7a\u683c / \u2191 \u8df3\u8dc3', canvas.width / 2, py + 130);
-    ctx.fillText('\u91d1\u8272\u65b9\u5757\u4e2d\u85cf\u6709\u6b63\u786e\u7b54\u6848\uff0c\u78b0\u5230\u540e\u624d\u4f1a\u663e\u793a\u5bf9\u9519\uff01', canvas.width / 2, py + 155);
-    ctx.fillText('\u60a8\u6709 100 \u70b9\u8840\u91cf\uff0c\u78b0\u5230\u9519\u8bef\u7b54\u6848\u6263 25 \u70b9\u8840\u91cf\uff01', canvas.width / 2, py + 180);
+    ctx.fillText('\u84dd\u8272\u65b9\u5757\u4e2d\u85cf\u6709\u6b63\u786e\u7b54\u6848\uff0c\u78b0\u5230\u540e\u624d\u4f1a\u663e\u793a\u5bf9\u9519\uff01', canvas.width / 2, py + 155);
+    ctx.fillText('\u4f60\u6709 3 \u6761\u751f\u547d\uff0c\u78b0\u5230\u9519\u8bef\u7b54\u6848\u6263\u9664 1 \u6761\u751f\u547d\uff01', canvas.width / 2, py + 180);
 
     // 开始按钮
     var bw = 160, bh = 48;
