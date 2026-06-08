@@ -1549,30 +1549,9 @@ function renderCourseDetail(courseId) {
 }
 
 function renderCourseChaptersOverview(course) {
+  // 无章节结构的课程，右边显示课程描述，不显示课时列表（左边已有）
   if (!course.chapters || course.chapters.length === 0) {
-    // 无章节结构的课程，直接显示课时列表
-    if (!course.lessons || course.lessons.length === 0) {
-      return '<p style="color:var(--text-secondary);">暂无课时内容</p>';
-    }
-    return `
-      <div style="display:grid;gap:12px;">
-        ${course.lessons.map(function(lesson) {
-          var isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
-          return `
-            <div class="chapter-card" data-action="select-lesson" data-course-id="${course.id}" data-lesson-id="${lesson.id}" style="cursor:pointer;padding:16px;border:1px solid var(--border-color);border-radius:8px;transition:all 0.2s;">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <span style="font-size:24px;">${getLessonTypeIcon(lesson.type)}</span>
-                <div style="flex:1;">
-                  <div style="font-weight:500;">${escapeHtml(lesson.title)}</div>
-                  <div style="font-size:13px;color:var(--text-secondary);">${lesson.duration || 0}分钟 · ${getLessonTypeLabel(lesson.type)}</div>
-                </div>
-                ${isCompleted ? '<span style="color:var(--color-success);">✓</span>' : '<span style="color:var(--text-tertiary);">→</span>'}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    return `<p style="color:var(--text-secondary);line-height:1.6;">${escapeHtml(course.description)}</p><p style="margin-top:16px;color:var(--text-tertiary);">请从左侧课时列表中选择开始学习。</p>`;
   }
 
   // 有章节结构的课程，显示章节卡片
@@ -1618,11 +1597,9 @@ function renderChapterLessons(course, chapterIdx) {
   });
   var chTotal = chapter.lessons.length;
 
-  // 获取第一个理论课时的内容作为章节介绍
+  // 获取第一个理论课时的完整内容作为章节内容
   var firstTheory = chapter.lessons.find(function(l) { return l.type === 'theory'; }) || chapter.lessons[0];
-  var chapterIntro = firstTheory && firstTheory.content 
-    ? firstTheory.content.replace(/<[^>]+>/g, '').substring(0, 300) + '...'
-    : '';
+  var chapterContent = firstTheory && firstTheory.content ? firstTheory.content : '';
 
   return `
     <div>
@@ -1631,23 +1608,26 @@ function renderChapterLessons(course, chapterIdx) {
         <h2 style="margin:0;font-size:20px;">${escapeHtml(chapter.title)}</h2>
         <span style="color:var(--text-secondary);font-size:14px;">已完成 ${chCompleted}/${chTotal}</span>
       </div>
-      ${chapterIntro ? `<div style="margin-bottom:24px;padding:16px;background:var(--bg-secondary);border-radius:8px;color:var(--text-secondary);line-height:1.6;">${escapeHtml(chapterIntro)}</div>` : ''}
-      <div style="display:grid;gap:12px;">
-        ${chapter.lessons.map(function(lesson) {
-          var isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
-          return `
-            <div class="chapter-card" data-action="select-lesson" data-course-id="${course.id}" data-lesson-id="${lesson.id}" style="cursor:pointer;padding:16px;border:1px solid var(--border-color);border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <span style="font-size:24px;">${getLessonTypeIcon(lesson.type)}</span>
-                <div style="flex:1;">
-                  <div style="font-weight:500;">${escapeHtml(lesson.title)}</div>
-                  <div style="font-size:13px;color:var(--text-secondary);">${lesson.duration || 0}分钟 · ${getLessonTypeLabel(lesson.type)}</div>
+      ${chapterContent ? `<div class="theory-content" style="margin-bottom:32px;">${chapterContent}</div>` : ''}
+      <div style="border-top:1px solid var(--border-color);padding-top:24px;">
+        <h3 style="margin-bottom:16px;font-size:16px;">📚 本章课时</h3>
+        <div style="display:grid;gap:12px;">
+          ${chapter.lessons.map(function(lesson) {
+            var isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
+            return `
+              <div class="chapter-card" data-action="select-lesson" data-course-id="${course.id}" data-lesson-id="${lesson.id}" style="cursor:pointer;padding:16px;border:1px solid var(--border-color);border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:24px;">${getLessonTypeIcon(lesson.type)}</span>
+                  <div style="flex:1;">
+                    <div style="font-weight:500;">${escapeHtml(lesson.title)}</div>
+                    <div style="font-size:13px;color:var(--text-secondary);">${lesson.duration || 0}分钟 · ${getLessonTypeLabel(lesson.type)}</div>
+                  </div>
+                  ${isCompleted ? '<span style="color:var(--color-success);">✓</span>' : '<span style="color:var(--text-tertiary);">→</span>'}
                 </div>
-                ${isCompleted ? '<span style="color:var(--color-success);">✓</span>' : '<span style="color:var(--text-tertiary);">→</span>'}
               </div>
-            </div>
-          `;
-        }).join('')}
+            `;
+          }).join('')}
+        </div>
       </div>
     </div>
   `;
