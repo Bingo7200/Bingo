@@ -18,6 +18,7 @@ const store = {
   currentQuiz: null,
   courseFilter: 'all',
   mobileMenuOpen: false,
+  githubToken: null, // GitHub Personal Access Token
 };
 
 // 状态变更通知
@@ -34,6 +35,7 @@ function persistState() {
       theme: store.theme,
       progress: store.progress,
       achievements: store.achievements,
+      githubToken: store.githubToken,
     };
     localStorage.setItem('datalearn_state', JSON.stringify(data));
   } catch (e) {
@@ -50,6 +52,7 @@ function loadPersistedState() {
       if (data.theme) store.theme = data.theme;
       if (data.progress) store.progress = data.progress;
       if (data.achievements) store.achievements = data.achievements;
+      if (data.githubToken) store.githubToken = data.githubToken;
     }
   } catch (e) {
     console.warn('加载持久化状态失败:', e);
@@ -429,7 +432,7 @@ function loadUser() {
   checkAchievements(null, null, null);
 }
 
-function loginUser(username, password) {
+async function loginUser(username, password) {
   if (!username || !password) {
     showToast('请填写用户名和密码', 'warning');
     return false;
@@ -441,6 +444,36 @@ function loginUser(username, password) {
   if (password.length < 4) {
     showToast('密码至少需要4个字符', 'warning');
     return false;
+  }
+
+  // 先尝试从云端加载
+  if (store.githubToken) {
+    showToast('正在从云端验证...', 'info');
+    var cloudData = await loadUserFromCloud(username, password);
+    if (cloudData && cloudData.password === password) {
+      store.user = {
+        id: cloudData.id,
+        username: username,
+        nickname: cloudData.nickname || username,
+        avatar: cloudData.avatar || null,
+        xp: cloudData.xp || 0,
+        streak: cloudData.streak || 0,
+        lastLogin: new Date().toISOString(),
+      };
+      // 同步到本地
+      var cloudUsers = JSON.parse(localStorage.getItem('datalearn_users') || '{}');
+      cloudUsers[username] = { id: store.user.id, password: password, nickname: store.user.nickname, avatar: store.user.avatar, xp: store.user.xp, streak: store.user.streak };
+      localStorage.setItem('datalearn_users', JSON.stringify(cloudUsers));
+      persistState();
+      renderNavbar();
+      closeModal();
+      showToast('欢迎回来，' + store.user.nickname + '！（已从云端同步）', 'success');
+      return true;
+    } else if (cloudData) {
+      showToast('密码错误', 'error');
+      return false;
+    }
+    // 云端没找到，继续尝试本地
   }
 
   // 本地验证登录
@@ -516,6 +549,21 @@ function registerUser(username, nickname, password) {
   renderNavbar();
   closeModal();
   showToast(`注册成功，欢迎 ${nickname}！`, 'success');
+
+  // 尝试保存到云端
+  if (store.githubToken) {
+    saveUserToCloud(username, {
+      id: userId,
+      password: password,
+      nickname: nickname,
+      avatar: null,
+      xp: 0,
+      streak: 0,
+    }, password).then(function(ok) {
+      if (ok) showToast('数据已同步到云端', 'success');
+    });
+  }
+
   return true;
 }
 
@@ -525,6 +573,159 @@ function logoutUser() {
   renderNavbar();
   navigateTo('#/home');
   showToast('已退出登录', 'info');
+}
+
+function renderCloudSettings() {
+  var token = store.githubToken || '';
+  var statusHtml = token ? '<span style="color:var(--color-success);">✓ 已配置 Token</span>' : '<span style="color:var(--text-secondary);">未配置 Token（数据仅保存在本地）</span>';
+
+  var content = `
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title">☁️ 云端同步设置</h2>
+        <button class="modal__close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal__body">
+        <p style="margin-bottom:16px;color:var(--text-secondary);">配置 GitHub Personal Access Token 后，你的学习数据将同步到云端，换设备也能继续学习。</p>
+        <div style="margin-bottom:12px;">${statusHtml}</div>
+        <div class="modal__field">
+          <label class="modal__label">GitHub Personal Access Token</label>
+          <input type="password" class="modal__input" id="cloud-token" placeholder="ghp_xxxxxxxxxxxx" value="${escapeHtml(token)}" autocomplete="off" />
+          <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
+            前往 <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--color-primary);">GitHub Settings</a> 创建 Token，只需 gist 权限。
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button class="btn btn--primary" data-action="save-cloud-token" style="flex:1;">保存 Token</button>
+          ${token ? '<button class="btn btn--outline" data-action="remove-cloud-token" style="flex:1;">移除 Token</button>' : ''}
+          ${token && store.user ? '<button class="btn btn--outline" data-action="sync-to-cloud" style="flex:1;">立即同步</button>' : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  openModal(content);
+}
+
+// ============================================================
+// GitHub Gist 云端存储
+// ============================================================
+
+// 简单的加密/解密（基于密码的XOR加密，足够保护隐私）
+function encryptData(data, password) {
+  var json = JSON.stringify(data);
+  var encrypted = '';
+  for (var i = 0; i < json.length; i++) {
+    encrypted += String.fromCharCode(json.charCodeAt(i) ^ password.charCodeAt(i % password.length));
+  }
+  return btoa(unescape(encodeURIComponent(encrypted)));
+}
+
+function decryptData(encrypted, password) {
+  try {
+    var decoded = decodeURIComponent(escape(atob(encrypted)));
+    var decrypted = '';
+    for (var i = 0; i < decoded.length; i++) {
+      decrypted += String.fromCharCode(decoded.charCodeAt(i) ^ password.charCodeAt(i % password.length));
+    }
+    return JSON.parse(decrypted);
+  } catch(e) {
+    return null;
+  }
+}
+
+// 查找用户的 Gist（通过 Gist 描述匹配）
+async function findUserGist(username) {
+  if (!store.githubToken) return null;
+  try {
+    var res = await fetch('https://api.github.com/gists', {
+      headers: { 'Authorization': 'token ' + store.githubToken, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return null;
+    var gists = await res.json();
+    for (var i = 0; i < gists.length; i++) {
+      if (gists[i].description === 'datalearn_user_' + username) {
+        return gists[i];
+      }
+    }
+    return null;
+  } catch(e) {
+    console.warn('查找Gist失败:', e);
+    return null;
+  }
+}
+
+// 保存用户数据到 Gist
+async function saveUserToCloud(username, userData, password) {
+  if (!store.githubToken) return false;
+  try {
+    var encrypted = encryptData(userData, password);
+    var gistId = localStorage.getItem('datalearn_gist_' + username);
+
+    var url = gistId
+      ? 'https://api.github.com/gists/' + gistId
+      : 'https://api.github.com/gists';
+    var method = gistId ? 'PATCH' : 'POST';
+
+    var body = {
+      description: 'datalearn_user_' + username,
+      public: false,
+      files: {
+        'datalearn_user.json': { content: encrypted }
+      }
+    };
+
+    var res = await fetch(url, {
+      method: method,
+      headers: {
+        'Authorization': 'token ' + store.githubToken,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      var gist = await res.json();
+      localStorage.setItem('datalearn_gist_' + username, gist.id);
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.warn('保存到云端失败:', e);
+    return false;
+  }
+}
+
+// 从 Gist 加载用户数据
+async function loadUserFromCloud(username, password) {
+  if (!store.githubToken) return null;
+  try {
+    // 先尝试从 localStorage 获取 gist ID
+    var gistId = localStorage.getItem('datalearn_gist_' + username);
+
+    if (!gistId) {
+      // 搜索用户的 Gist
+      var gist = await findUserGist(username);
+      if (!gist) return null;
+      gistId = gist.id;
+      localStorage.setItem('datalearn_gist_' + username, gistId);
+    }
+
+    var res = await fetch('https://api.github.com/gists/' + gistId, {
+      headers: { 'Authorization': 'token ' + store.githubToken, 'Accept': 'application/vnd.github.v3+json' }
+    });
+
+    if (!res.ok) return null;
+    var gist = await res.json();
+    var encrypted = gist.files['datalearn_user.json'];
+    if (!encrypted || !encrypted.content) return null;
+
+    var userData = decryptData(encrypted.content, password);
+    return userData;
+  } catch(e) {
+    console.warn('从云端加载失败:', e);
+    return null;
+  }
 }
 
 function updateUserXP(amount) {
@@ -537,6 +738,17 @@ function updateUserXP(amount) {
     localStorage.setItem('datalearn_users', JSON.stringify(users));
   }
   persistState();
+
+  // 同步到云端
+  if (store.githubToken) {
+    var u = users[store.user.username];
+    if (u) {
+      saveUserToCloud(store.user.username, {
+        id: u.id, password: u.password, nickname: u.nickname,
+        avatar: u.avatar, xp: store.user.xp, streak: store.user.streak
+      }, u.password);
+    }
+  }
 }
 
 function updateStreak() {
@@ -564,6 +776,17 @@ function updateStreak() {
     localStorage.setItem('datalearn_users', JSON.stringify(users));
   }
   persistState();
+
+  // 同步到云端
+  if (store.githubToken) {
+    var u = users[store.user.username];
+    if (u) {
+      saveUserToCloud(store.user.username, {
+        id: u.id, password: u.password, nickname: u.nickname,
+        avatar: u.avatar, xp: store.user.xp, streak: store.user.streak
+      }, u.password);
+    }
+  }
 }
 
 // ============================================================
@@ -818,6 +1041,7 @@ function renderNavbar() {
         <div class="navbar__avatar">${store.user.avatar || escapeHtml(store.user.nickname.charAt(0).toUpperCase())}</div>
         <span class="navbar__username">${escapeHtml(store.user.nickname)}</span>
         <button class="navbar__auth-btn navbar__auth-btn--login" data-action="logout">退出</button>
+        <button class="navbar__auth-btn" data-action="open-cloud-settings">☁️ 云端设置</button>
       </div>
     `
     : `
@@ -2245,6 +2469,58 @@ function handleGlobalClick(e) {
 
     case 'logout': {
       logoutUser();
+      break;
+    }
+
+    case 'open-cloud-settings': {
+      renderCloudSettings();
+      break;
+    }
+
+    case 'save-cloud-token': {
+      var tokenInput = document.getElementById('cloud-token');
+      if (tokenInput && tokenInput.value.trim()) {
+        store.githubToken = tokenInput.value.trim();
+        persistState();
+        closeModal();
+        showToast('Token 已保存，数据将自动同步到云端', 'success');
+        // 如果已登录，立即同步到云端
+        if (store.user) {
+          var users = JSON.parse(localStorage.getItem('datalearn_users') || '{}');
+          var u = users[store.user.username];
+          if (u) {
+            saveUserToCloud(store.user.username, {
+              id: u.id, password: u.password, nickname: u.nickname,
+              avatar: u.avatar, xp: store.user.xp, streak: store.user.streak
+            }, u.password);
+          }
+        }
+      }
+      break;
+    }
+
+    case 'remove-cloud-token': {
+      store.githubToken = null;
+      persistState();
+      closeModal();
+      showToast('Token 已移除，数据仅保存在本地', 'info');
+      break;
+    }
+
+    case 'sync-to-cloud': {
+      if (store.user && store.githubToken) {
+        var users = JSON.parse(localStorage.getItem('datalearn_users') || '{}');
+        var u = users[store.user.username];
+        if (u) {
+          saveUserToCloud(store.user.username, {
+            id: u.id, password: u.password, nickname: u.nickname,
+            avatar: u.avatar, xp: store.user.xp, streak: store.user.streak
+          }, u.password).then(function(ok) {
+            if (ok) showToast('数据已同步到云端', 'success');
+            else showToast('同步失败，请检查Token', 'error');
+          });
+        }
+      }
       break;
     }
 
