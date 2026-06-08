@@ -80,6 +80,53 @@
           osc.start(audioCtx.currentTime);
           osc.stop(audioCtx.currentTime + 0.5);
           break;
+        case 'coin':
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(987, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(1318, audioCtx.currentTime + 0.05);
+          gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.15);
+          break;
+        case 'powerup':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(554, audioCtx.currentTime + 0.08);
+          osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.16);
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.24);
+          gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.35);
+          break;
+        case 'stomp':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.12);
+          break;
+        case 'hurt':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.25);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.25);
+          break;
+        case 'kick':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.1);
+          break;
       }
     } catch(e) {}
   }
@@ -412,10 +459,42 @@
     this.type = type; // 'goomba' | 'koopa'
     this.frame = 0; this.frameTimer = 0;
     this.patrolDir = 1;
+    this.shell = false;
+    this.shellVx = 0;
+    this.shellBounces = 0;
+    this.shellMaxBounces = 5;
   }
-  Enemy.prototype.update = function(platforms) {
+  Enemy.prototype.update = function(platforms, camX, canvasWidth) {
     if (!this.active) return;
     if (this.squished) { this.squishTimer++; if (this.squishTimer > 30) this.active = false; return; }
+
+    // 龟壳移动逻辑
+    if (this.shell) {
+      this.x += this.shellVx;
+      // 碰墙反弹
+      for (var i = 0; i < platforms.length; i++) {
+        var p = platforms[i];
+        if (p.destroyed) continue;
+        if (p.type === 'pipe') {
+          if (this.shellVx > 0 && this.x + this.w + 2 >= p.x && this.x + this.w < p.x + 10 &&
+              this.y + this.h > p.y && this.y < p.y + p.h) {
+            this.shellVx *= -1;
+            this.shellBounces++;
+            if (this.shellBounces > this.shellMaxBounces) this.active = false;
+          } else if (this.shellVx < 0 && this.x - 2 <= p.x + p.w && this.x > p.x + p.w - 10 &&
+              this.y + this.h > p.y && this.y < p.y + p.h) {
+            this.shellVx *= -1;
+            this.shellBounces++;
+            if (this.shellBounces > this.shellMaxBounces) this.active = false;
+          }
+        }
+      }
+      // 离开视野消失
+      if (camX !== undefined && canvasWidth !== undefined) {
+        if (this.x < camX - 100 || this.x > camX + canvasWidth + 100) this.active = false;
+      }
+      return;
+    }
 
     this.x += this.vx * this.patrolDir;
     this.frameTimer++;
@@ -490,6 +569,17 @@
       ctx.fillRect(sx + 4, sy + this.h * 0.3, 9, 2);
       ctx.fillRect(sx + this.w - 13, sy + this.h * 0.3, 9, 2);
     } else if (this.type === 'koopa') {
+      if (this.shell) {
+        // 龟壳状态绘制
+        ctx.fillStyle = COLORS.koopa;
+        ctx.beginPath();
+        ctx.ellipse(sx + this.w / 2, sy + this.h - 8, 14, 10, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.strokeStyle = COLORS.koopaDark;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        return;
+      }
       if (this.squished) {
         // 缩壳
         ctx.fillStyle = COLORS.koopa;
@@ -1042,11 +1132,13 @@
               player.coins++;
               this.score = player.score;
               this.coins = player.coins;
+              playSound('coin');
               for (var k = 0; k < 5; k++) {
                 this.particles.push(new Particle(p.x + p.w / 2, p.y, COLORS.coin, 'star'));
               }
             } else {
               // 弹出题目
+              playSound('coin');
               this._showQuestion(p.questionIndex);
             }
           }
@@ -1078,19 +1170,63 @@
         var e = this.enemies[i];
         if (!e.active || e.squished) continue;
         if (aabb(player, e)) {
+          // 龟壳移动中打玩家
+          if (e.shell && e.shellVx !== 0) {
+            playSound('hurt');
+            player.lives--;
+            player.invincible = 90;
+            this.lives = player.lives;
+            this.shakeScreen = 10;
+            player.vx = player.x < e.x ? -5 : 5;
+            player.vy = -5;
+            if (player.lives <= 0) {
+              player.lives = 0;
+              player.dead = true;
+              player.vy = -8;
+              this.state = 'gameover';
+              this.onComplete(this.score, this.questions.length);
+            }
+            continue;
+          }
           // 从上方踩
           if (player.vy > 0 && player.y + player.h - player.vy <= e.y + e.h / 2) {
-            e.squished = true;
-            e.squishTimer = 0;
-            player.vy = -8;
-            player.score += 5;
-            this.score = player.score;
-            for (var k = 0; k < 10; k++) {
-              this.particles.push(new Particle(e.x + e.w / 2, e.y + e.h / 2,
-                e.type === 'goomba' ? COLORS.goomba : COLORS.koopa, 'spark'));
+            if (e.type === 'koopa') {
+              if (!e.shell) {
+                // 第一次踩：缩壳
+                e.shell = true;
+                e.shellVx = 0;
+                e.squished = false;
+                player.vy = -8;
+                playSound('stomp');
+                for (var k = 0; k < 10; k++) {
+                  this.particles.push(new Particle(e.x + e.w / 2, e.y + e.h / 2, COLORS.koopa, 'spark'));
+                }
+              } else if (e.shellVx === 0) {
+                // 第二次踩：踢走
+                e.shellVx = 6 * (player.x < e.x ? 1 : -1);
+                player.vy = -8;
+                playSound('kick');
+              } else {
+                // 第三次踩：停下来
+                e.shellVx = 0;
+                player.vy = -8;
+                playSound('stomp');
+              }
+            } else {
+              e.squished = true;
+              e.squishTimer = 0;
+              player.vy = -8;
+              player.score += 5;
+              this.score = player.score;
+              playSound('stomp');
+              for (var k = 0; k < 10; k++) {
+                this.particles.push(new Particle(e.x + e.w / 2, e.y + e.h / 2,
+                  e.type === 'goomba' ? COLORS.goomba : COLORS.koopa, 'spark'));
+              }
             }
           } else {
             // 被碰到扣命
+            playSound('hurt');
             player.lives--;
             player.invincible = 90;
             this.lives = player.lives;
@@ -1121,6 +1257,7 @@
         player.score += 5;
         this.coins = player.coins;
         this.score = player.score;
+        playSound('coin');
         for (var k = 0; k < 6; k++) {
           this.particles.push(new Particle(c.x + c.w / 2, c.y + c.h / 2, COLORS.coin, 'star'));
         }
@@ -1134,6 +1271,7 @@
       if (!m.active) { this.mushrooms.splice(i, 1); continue; }
       if (aabb(player, m)) {
         m.active = false;
+        playSound('powerup');
         if (m.type === 'invincible') {
           player.invincible = 300;
           this._addFloatText(m.x, m.y - 20, '无敌5秒！', '#ff6600');
@@ -1227,7 +1365,26 @@
 
     // 怪物更新
     for (var i = 0; i < this.enemies.length; i++) {
-      this.enemies[i].update(this.platforms);
+      this.enemies[i].update(this.platforms, this.camX, this.canvas.width);
+    }
+
+    // 龟壳打怪
+    for (var i = 0; i < this.enemies.length; i++) {
+      var e1 = this.enemies[i];
+      if (e1.shell && e1.shellVx !== 0) {
+        for (var j = 0; j < this.enemies.length; j++) {
+          var e2 = this.enemies[j];
+          if (e1 !== e2 && e2.active && !e2.shell && aabb(e1, e2)) {
+            e2.active = false;
+            player.score += 5;
+            this.score = player.score;
+            for (var k = 0; k < 10; k++) {
+              this.particles.push(new Particle(e2.x + e2.w / 2, e2.y + e2.h / 2,
+                e2.type === 'goomba' ? COLORS.goomba : COLORS.koopa, 'spark'));
+            }
+          }
+        }
+      }
     }
 
     // 平台更新

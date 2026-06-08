@@ -1784,6 +1784,11 @@ function initGameMode() {
       markLessonComplete(quiz.lessonId, 'quiz', Math.round((score / total) * 100));
       showToast('游戏通关！获得 ' + xp + ' XP', 'success');
       setTimeout(() => {
+        // 停止游戏并清理canvas
+        if (store.currentGame) {
+          store.currentGame.stop();
+          store.currentGame = null;
+        }
         const contentArea = document.querySelector('.course-content__body');
         if (contentArea) contentArea.innerHTML = renderQuizResult();
       }, 1500);
