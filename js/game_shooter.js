@@ -1129,14 +1129,13 @@
         }, 200);
       });
 
-      return {
-        canvas: canvas,
-        game: game,
-        destroy: function() {
-          game.destroy();
-          if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
-        }
+      // 给 game 添加 destroy 方法以便外部调用
+      game.destroy = function() {
+        game.stop();
+        if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
       };
+
+      return game;
     },
 
     isMobile: function() {
