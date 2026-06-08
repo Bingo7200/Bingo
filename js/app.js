@@ -443,43 +443,26 @@ function loginUser(username, password) {
     return false;
   }
 
-  // 本地模拟登录
+  // 本地验证登录
   const users = JSON.parse(localStorage.getItem('datalearn_users') || '{}');
-  if (users[username]) {
-    if (users[username].password !== password) {
-      showToast('密码错误', 'error');
-      return false;
-    }
-    store.user = {
-      id: users[username].id,
-      username: username,
-      nickname: users[username].nickname || username,
-      avatar: users[username].avatar || null,
-      xp: users[username].xp || 0,
-      streak: users[username].streak || 0,
-      lastLogin: new Date().toISOString(),
-    };
-  } else {
-    // 自动注册
-    store.user = {
-      id: 'user_' + Date.now(),
-      username: username,
-      nickname: username,
-      avatar: null,
-      xp: 0,
-      streak: 0,
-      lastLogin: new Date().toISOString(),
-    };
-    users[username] = {
-      id: store.user.id,
-      password: password,
-      nickname: username,
-      avatar: null,
-      xp: 0,
-      streak: 0,
-    };
-    localStorage.setItem('datalearn_users', JSON.stringify(users));
+  if (!users[username]) {
+    showToast('用户不存在，请先注册', 'error');
+    return false;
   }
+  if (users[username].password !== password) {
+    showToast('密码错误', 'error');
+    return false;
+  }
+
+  store.user = {
+    id: users[username].id,
+    username: username,
+    nickname: users[username].nickname || username,
+    avatar: users[username].avatar || null,
+    xp: users[username].xp || 0,
+    streak: users[username].streak || 0,
+    lastLogin: new Date().toISOString(),
+  };
 
   persistState();
   renderNavbar();
