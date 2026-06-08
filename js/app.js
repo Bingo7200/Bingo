@@ -179,10 +179,16 @@ function getCourseProgress(courseId) {
   if (!COURSES_DATA) return 0;
   const course = COURSES_DATA.find(c => c.id === courseId);
   if (!course) return 0;
-  const total = course.lessons.length;
-  if (total === 0) return 0;
+  // 展平chapters到lessons
+  var lessons = course.lessons;
+  if (!lessons && course.chapters) {
+    lessons = [];
+    course.chapters.forEach(function(ch) { if (ch.lessons) lessons = lessons.concat(ch.lessons); });
+  }
+  if (!lessons || lessons.length === 0) return 0;
+  const total = lessons.length;
   let completed = 0;
-  course.lessons.forEach(lesson => {
+  lessons.forEach(lesson => {
     if (store.progress[lesson.id] && store.progress[lesson.id].status === 'completed') {
       completed++;
     }
@@ -1019,7 +1025,7 @@ function renderHome() {
             </div>
             <div class="hero__stat-divider"></div>
             <div class="hero__stat">
-              <span class="hero__stat-number">${courses.reduce((sum, c) => sum + c.lessons.length, 0)}+</span>
+              <span class="hero__stat-number">${courses.reduce((sum, c) => sum + (c.lessons ? c.lessons.length : (c.chapters ? c.chapters.reduce((s, ch) => s + (ch.lessons ? ch.lessons.length : 0), 0) : 0)), 0)}+</span>
               <span class="hero__stat-label">课时</span>
             </div>
             <div class="hero__stat-divider"></div>
@@ -1147,9 +1153,15 @@ function renderHome() {
 // ============================================================
 function renderCourseCard(course) {
   const progress = getCourseProgress(course.id);
-  const totalLessons = course.lessons ? course.lessons.length : 0;
-  const completedLessons = course.lessons
-    ? course.lessons.filter(l => store.progress[l.id] && store.progress[l.id].status === 'completed').length
+  // 展平chapters到lessons
+  var allLessons = course.lessons;
+  if (!allLessons && course.chapters) {
+    allLessons = [];
+    course.chapters.forEach(function(ch) { if (ch.lessons) allLessons = allLessons.concat(ch.lessons); });
+  }
+  const totalLessons = allLessons ? allLessons.length : 0;
+  const completedLessons = allLessons
+    ? allLessons.filter(l => store.progress[l.id] && store.progress[l.id].status === 'completed').length
     : 0;
 
   return `
@@ -1165,7 +1177,7 @@ function renderCourseCard(course) {
       <div class="course-card__meta">
         <div class="course-card__info">
           <span class="course-card__info-item">${totalLessons} 课时</span>
-          <span class="course-card__info-item">${formatDuration(course.lessons ? course.lessons.reduce((s, l) => s + (l.duration || 0), 0) : 0)}</span>
+          <span class="course-card__info-item">${formatDuration(allLessons ? allLessons.reduce((s, l) => s + (l.duration || 0), 0) : 0)}</span>
         </div>
         ${progress > 0 ? `
           <div class="course-card__progress">
@@ -1298,7 +1310,7 @@ function renderCourseDetail(courseId) {
             <p class="course-content__meta">
               <span class="course-content__meta-item">${getDifficultyLabel(course.difficulty)}</span>
               <span class="course-content__meta-item">${course.lessons.length} 课时</span>
-              <span class="course-content__meta-item">${formatDuration(course.lessons.reduce((s, l) => s + (l.duration || 0), 0))}</span>
+              <span class="course-content__meta-item">${formatDuration(course.lessons ? course.lessons.reduce((s, l) => s + (l.duration || 0), 0) : 0)}</span>
             </p>
             <div class="course-content__body">
               <p>${escapeHtml(course.description)}</p>
