@@ -2154,6 +2154,7 @@ function setupEventDelegation() {
   document.addEventListener('click', handleGlobalClick);
   document.addEventListener('submit', handleGlobalSubmit);
   document.addEventListener('input', handleGlobalInput);
+  document.addEventListener('change', handleGlobalInput);
 }
 
 function handleGlobalClick(e) {
@@ -2283,21 +2284,7 @@ function handleGlobalClick(e) {
       break;
     }
 
-    case 'change-game-type': {
-      const quiz = store.currentQuiz;
-      if (quiz && target.tagName === 'SELECT') {
-        quiz.gameType = target.value;
-        if (store.currentGame) {
-          store.currentGame.stop();
-          store.currentGame = null;
-        }
-        refreshQuizDisplay();
-        if (quiz.gameMode) {
-          setTimeout(initGameMode, 200);
-        }
-      }
-      break;
-    }
+    // change-game-type 已移到 handleGlobalInput 中处理（避免select的click事件误触发）
 
     case 'game-left': {
       if (store.currentGame && store.currentGame.player) store.currentGame.player.movingLeft = true;
@@ -2404,6 +2391,24 @@ function handleGlobalInput(e) {
   // 代码编辑器行号同步
   if (e.target.id === 'code-textarea') {
     updateLineNumbers(e.target);
+  }
+  // 游戏类型切换（select的change事件）
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+  const action = target.getAttribute('data-action');
+  if (action === 'change-game-type') {
+    const quiz = store.currentQuiz;
+    if (quiz && target.tagName === 'SELECT') {
+      quiz.gameType = target.value;
+      if (store.currentGame) {
+        store.currentGame.stop();
+        store.currentGame = null;
+      }
+      refreshQuizDisplay();
+      if (quiz.gameMode) {
+        setTimeout(initGameMode, 200);
+      }
+    }
   }
 }
 
