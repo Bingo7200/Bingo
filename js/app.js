@@ -590,7 +590,10 @@ function logoutUser() {
 
 function renderCloudSettings() {
   var token = store.githubToken || '';
-  var statusHtml = token ? '<span style="color:var(--color-success);">✓ 已配置 Token</span>' : '<span style="color:var(--text-secondary);">未配置 Token（数据仅保存在本地）</span>';
+  var isConfigured = !!token;
+  var statusHtml = isConfigured 
+    ? '<span style="color:var(--color-success);">✅ 云端同步已开启</span>' 
+    : '<span style="color:var(--text-secondary);">⚠️ 数据仅保存在本浏览器（换设备/清缓存会丢失）</span>';
 
   var content = `
     <div class="modal">
@@ -599,19 +602,44 @@ function renderCloudSettings() {
         <button class="modal__close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal__body">
-        <p style="margin-bottom:16px;color:var(--text-secondary);">配置 GitHub Personal Access Token 后，你的学习数据将同步到云端，换设备也能继续学习。</p>
-        <div style="margin-bottom:12px;">${statusHtml}</div>
+        <div style="margin-bottom:16px;padding:12px;background:var(--bg-secondary);border-radius:8px;">
+          <div style="font-weight:500;margin-bottom:4px;">📌 当前状态</div>
+          <div style="font-size:14px;">${statusHtml}</div>
+        </div>
+        
+        <div style="margin-bottom:16px;color:var(--text-secondary);font-size:14px;line-height:1.6;">
+          <p><strong>什么是云端同步？</strong></p>
+          <p>你的学习数据（XP、进度、成就）会自动保存到你的 GitHub 账号中。换电脑、换浏览器、清除缓存后，登录即可恢复所有数据。</p>
+          <p style="margin-top:8px;"><strong>数据存在哪里？</strong></p>
+          <p>数据加密后保存在你的 GitHub Gist（私密）中，只有你能访问。平台服务器不存储任何用户数据。</p>
+        </div>
+        
+        ${!isConfigured ? `
+        <div style="margin-bottom:16px;padding:12px;background:var(--color-primary);color:#fff;border-radius:8px;font-size:14px;">
+          <div style="font-weight:500;margin-bottom:4px;">🚀 快速配置（只需30秒）</div>
+          <ol style="margin:0;padding-left:20px;line-height:1.8;">
+            <li>点击下面按钮打开 GitHub</li>
+            <li>输入 Token 名称（如 DataLearn），勾选 <strong>gist</strong> 权限</li>
+            <li>点击 Generate，复制生成的 Token</li>
+            <li>粘贴到下方输入框，点击保存</li>
+          </ol>
+          <div style="margin-top:8px;">
+            <a href="https://github.com/settings/tokens/new?description=DataLearn%20%E5%AD%A6%E4%B9%A0%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5&scopes=gist" target="_blank" style="color:#fff;text-decoration:underline;">👉 点击打开 GitHub 创建 Token</a>
+          </div>
+        </div>
+        ` : ''}
+        
         <div class="modal__field">
           <label class="modal__label">GitHub Personal Access Token</label>
           <input type="password" class="modal__input" id="cloud-token" placeholder="ghp_xxxxxxxxxxxx" value="${escapeHtml(token)}" autocomplete="off" />
           <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
-            前往 <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--color-primary);">GitHub Settings</a> 创建 Token，只需 gist 权限。
+            Token 只保存在你的浏览器中，不会上传到任何服务器。
           </p>
         </div>
         <div style="display:flex;gap:8px;margin-top:16px;">
-          <button class="btn btn--primary" data-action="save-cloud-token" style="flex:1;">保存 Token</button>
-          ${token ? '<button class="btn btn--outline" data-action="remove-cloud-token" style="flex:1;">移除 Token</button>' : ''}
-          ${token && store.user ? '<button class="btn btn--outline" data-action="sync-to-cloud" style="flex:1;">立即同步</button>' : ''}
+          <button class="btn btn--primary" data-action="save-cloud-token" style="flex:1;">${isConfigured ? '更新 Token' : '保存 Token 并开启同步'}</button>
+          ${isConfigured ? '<button class="btn btn--outline" data-action="remove-cloud-token" style="flex:1;">关闭云端同步</button>' : ''}
+          ${isConfigured && store.user ? '<button class="btn btn--outline" data-action="sync-to-cloud" style="flex:1;">立即同步</button>' : ''}
         </div>
       </div>
     </div>
