@@ -341,7 +341,8 @@ async function initPyodide() {
     showToast('Python运行环境加载完成', 'success');
   } catch (e) {
     console.warn('Pyodide加载失败:', e);
-    showToast('Python运行环境加载失败，代码练习功能可能受限', 'warning');
+    // 静默处理，不显示警告（避免Tracking Prevention等安全提示）
+    store.pyodideReady = false;
   }
 }
 
