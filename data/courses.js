@@ -281,7 +281,39 @@ inputs = ["42", "3.14", "True", "hello", "100", "0"]
             title: '第一章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对Python基础语法、变量、数据类型和运算符的掌握程度。</p>`
+            content: `<p>测试你对Python基础语法、变量、数据类型和运算符的掌握程度。</p>`,
+            questions: [
+              {
+                question: '在Python中，以下哪个变量名是合法的？',
+                options: ['2name', 'my-name', '_private_var', 'class'],
+                correct: 2,
+                explanation: 'Python变量名不能以数字开头，不能包含连字符，也不能使用关键字。以下划线开头的变量名是合法的，通常表示私有变量。'
+              },
+              {
+                question: '执行 `print(0.1 + 0.2 == 0.3)` 的结果是什么？',
+                options: ['True', 'False', '报错', 'None'],
+                correct: 1,
+                explanation: '浮点数在计算机中采用二进制表示，存在精度问题。0.1 + 0.2 的实际结果是 0.30000000000000004，不等于 0.3。'
+              },
+              {
+                question: '以下哪个表达式的结果是 `True`？',
+                options: ['bool(0)', 'bool("")', 'bool([1, 2])', 'bool(None)'],
+                correct: 2,
+                explanation: '在Python中，空序列（如空列表、空字符串）、0、None、False 在布尔上下文中被视为 False。非空列表 [1, 2] 被视为 True。'
+              },
+              {
+                question: '执行 `a, b = 10, 20` 后，再执行 `a, b = b, a`，a 和 b 的值分别是多少？',
+                options: ['10, 20', '20, 10', '20, 20', '报错'],
+                correct: 1,
+                explanation: 'Python支持直接交换变量的值，不需要借助临时变量。a, b = b, a 会将 a 和 b 的值互换。'
+              },
+              {
+                question: '在Python中，`//` 运算符的作用是什么？',
+                options: ['取模运算', '整除运算（向下取整）', '普通除法', '幂运算'],
+                correct: 1,
+                explanation: '`//` 是整除运算符，返回商的整数部分（向下取整）。例如 17 // 5 的结果是 3。取模用 `%`，普通除法用 `/`，幂运算用 `**`。'
+              }
+            ]
           }
         ]
       },
@@ -545,7 +577,39 @@ data = [
             title: '第二章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对条件语句、循环、函数和lambda表达式的掌握程度。</p>`
+            content: `<p>测试你对条件语句、循环、函数和lambda表达式的掌握程度。</p>`,
+            questions: [
+              {
+                question: '以下代码的输出结果是什么？\n```python\nscore = 85\nif score >= 90:\n    grade = "A"\nelif score >= 80:\n    grade = "B"\nelif score >= 70:\n    grade = "C"\nelse:\n    grade = "D"\nprint(grade)\n```',
+                options: ['A', 'B', 'C', 'D'],
+                correct: 1,
+                explanation: 'score = 85，满足 score >= 80 的条件，因此 grade = "B"。elif 分支在第一个满足条件的分支执行后就会停止判断。'
+              },
+              {
+                question: '执行 `list(range(0, 10, 2))` 的结果是什么？',
+                options: ['[0, 2, 4, 6, 8, 10]', '[0, 2, 4, 6, 8]', '[2, 4, 6, 8, 10]', '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]'],
+                correct: 1,
+                explanation: 'range(0, 10, 2) 从 0 开始，步长为 2，到小于 10 为止。因此结果是 [0, 2, 4, 6, 8]。注意 range 的 stop 参数是不包含的。'
+              },
+              {
+                question: '以下哪个函数定义使用了可变位置参数（*args）？',
+                options: ['def func(a, b=10):', 'def func(*args):', 'def func(**kwargs):', 'def func(a, *, b):'],
+                correct: 1,
+                explanation: '`*args` 用于接收可变数量的位置参数，args 在函数内部是一个元组。`**kwargs` 接收可变数量的关键字参数，`*` 用于强制关键字参数。'
+              },
+              {
+                question: '以下代码的输出结果是什么？\n```python\nnums = [1, 2, 3, 4, 5]\nresult = [x**2 for x in nums if x % 2 == 0]\nprint(result)\n```',
+                options: ['[1, 4, 9, 16, 25]', '[4, 16]', '[2, 4]', '[1, 9, 25]'],
+                correct: 1,
+                explanation: '列表推导式先筛选出偶数（x % 2 == 0），即 2 和 4，然后计算它们的平方，得到 [4, 16]。'
+              },
+              {
+                question: '以下关于 lambda 表达式的说法，正确的是？',
+                options: ['lambda 可以包含多条语句', 'lambda 必须有返回值', 'lambda 只能有一个参数', 'lambda 是一个匿名函数，只能包含一个表达式'],
+                correct: 3,
+                explanation: 'lambda 是匿名函数，语法为 `lambda 参数: 表达式`，只能包含一个表达式，不能包含多条语句。返回值是表达式的计算结果，可以有多个参数。'
+              }
+            ]
           }
         ]
       },
@@ -771,7 +835,39 @@ sales = [
             title: '第三章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对Python数据结构的掌握程度。</p>`
+            content: `<p>测试你对Python数据结构的掌握程度。</p>`,
+            questions: [
+              {
+                question: '以下关于列表和元组的说法，正确的是？',
+                options: ['列表和元组都是不可变的', '列表是不可变的，元组是可变的', '列表是可变的，元组是不可变的', '列表和元组都是无序的'],
+                correct: 2,
+                explanation: '列表（list）是可变序列，支持增删改操作；元组（tuple）是不可变序列，创建后不能修改。两者都是有序序列。'
+              },
+              {
+                question: '执行以下代码后，`d` 的值是什么？\n```python\nd = {"a": 1, "b": 2}\nd["c"] = d.get("c", 0) + 3\n```',
+                options: ['{"a": 1, "b": 2}', '{"a": 1, "b": 2, "c": 3}', '{"a": 1, "b": 2, "c": 0}', '报错'],
+                correct: 1,
+                explanation: '`d.get("c", 0)` 在键 "c" 不存在时返回默认值 0，然后 0 + 3 = 3，赋值给 `d["c"]`。因此最终字典包含 "c": 3。'
+              },
+              {
+                question: '执行 `set([1, 2, 2, 3, 3, 3])` 的结果是什么？',
+                options: ['[1, 2, 3]', '(1, 2, 3)', '{1, 2, 3}', '{1: 2, 3: 3}'],
+                correct: 2,
+                explanation: 'set() 创建集合，集合会自动去重。结果是无序且不重复的元素集合 {1, 2, 3}。注意集合用花括号表示，但空集合必须用 set()。'
+              },
+              {
+                question: '以下代码的输出结果是什么？\n```python\na = [1, 2, 3]\nb = a\nb.append(4)\nprint(len(a))\n```',
+                options: ['3', '4', '报错', 'None'],
+                correct: 1,
+                explanation: '`b = a` 只是让 b 引用同一个列表对象，不是复制。因此 b.append(4) 也会修改 a，a 的长度变为 4。'
+              },
+              {
+                question: '以下哪个表达式可以正确合并两个字典 `d1` 和 `d2`？',
+                options: ['d1 + d2', 'd1.merge(d2)', '{**d1, **d2}', 'd1.join(d2)'],
+                correct: 2,
+                explanation: 'Python 3.5+ 支持用 `{**d1, **d2}` 解包合并字典。`d1 | d2`（Python 3.9+）也可以。字典没有 +、merge() 或 join() 方法。'
+              }
+            ]
           }
         ]
       },
@@ -929,7 +1025,39 @@ raw_data = [
             title: '第四章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对文件操作和异常处理的掌握程度。</p>`
+            content: `<p>测试你对文件操作和异常处理的掌握程度。</p>`,
+            questions: [
+              {
+                question: '执行 `"  Hello World  ".strip()` 的结果是什么？',
+                options: ['"  Hello World  "', '"Hello World"', '"HelloWorld"', '"  HelloWorld  "'],
+                correct: 1,
+                explanation: '`strip()` 方法去除字符串两端（开头和结尾）的空白字符，包括空格、制表符、换行符等，不会去除中间的空格。'
+              },
+              {
+                question: '以下代码的输出结果是什么？\n```python\ntext = "apple,banana,cherry"\nresult = text.split(",")[1]\nprint(result)\n```',
+                options: ['apple', 'banana', 'cherry', '报错'],
+                correct: 1,
+                explanation: '`split(",")` 将字符串按逗号分割为列表 `["apple", "banana", "cherry"]`，取索引 1 的元素是 "banana"。'
+              },
+              {
+                question: '使用 `with open("data.txt", "r") as f:` 打开文件的好处是什么？',
+                options: ['可以读取更大的文件', '文件会自动关闭', '读取速度更快', '可以写入文件'],
+                correct: 1,
+                explanation: '`with` 语句创建上下文管理器，确保文件在代码块结束时自动关闭，即使发生异常也会关闭，避免资源泄漏。'
+              },
+              {
+                question: '以下关于异常处理的说法，错误的是？',
+                options: ['try 块中发生异常时，会跳转到 except 块', 'finally 块无论是否发生异常都会执行', '可以使用多个 except 捕获不同类型的异常', 'else 块在发生异常时执行'],
+                correct: 3,
+                explanation: '`else` 块在 try 块没有发生异常时执行，而不是发生异常时执行。finally 块无论是否异常都会执行，用于资源清理。'
+              },
+              {
+                question: '执行以下代码后，文件内容是什么？\n```python\nwith open("test.txt", "w", encoding="utf-8") as f:\n    f.write("Line1\\n")\n    f.write("Line2")\n```',
+                options: ['Line1\\nLine2', 'Line1\nLine2', 'Line1 Line2', 'Line1\\nLine2\\n'],
+                correct: 1,
+                explanation: '`\\n` 在 Python 字符串中表示换行符。`"w"` 模式会覆盖写入，最终文件内容为两行：Line1 和 Line2。注意字符串中的 `\\n` 会被解析为实际的换行符。'
+              }
+            ]
           }
         ]
       },
@@ -1166,7 +1294,39 @@ def my_decorator(func):
             title: '第五章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对面向对象编程的掌握程度。</p>`
+            content: `<p>测试你对面向对象编程的掌握程度。</p>`,
+            questions: [
+              {
+                question: '在Python类中，`__init__` 方法的作用是什么？',
+                options: ['销毁对象时调用', '初始化对象属性', '定义类方法', '定义静态方法'],
+                correct: 1,
+                explanation: '`__init__` 是构造方法（初始化方法），在创建对象时自动调用，用于初始化对象的属性。析构方法是 `__del__`。'
+              },
+              {
+                question: '以下代码中，`super().__init__(name)` 的作用是什么？\n```python\nclass Developer(Employee):\n    def __init__(self, name, language):\n        super().__init__(name)\n        self.language = language\n```',
+                options: ['创建一个新的 Employee 对象', '调用父类 Employee 的 __init__ 方法', '覆盖父类的 name 属性', '定义类方法'],
+                correct: 1,
+                explanation: '`super()` 返回父类的代理对象，调用 `super().__init__(name)` 会执行父类的初始化方法，确保父类属性被正确初始化。'
+              },
+              {
+                question: '以下关于 `@property` 装饰器的说法，正确的是？',
+                options: ['将类方法转换为静态方法', '将方法变为属性访问方式', '定义私有属性', '定义类方法'],
+                correct: 1,
+                explanation: '`@property` 装饰器可以将方法变为属性访问方式，允许像访问属性一样访问方法，而不需要在调用时加括号。'
+              },
+              {
+                question: '在Python中，单下划线前缀 `_name` 的约定含义是什么？',
+                options: ['完全私有的属性，外部无法访问', '受保护的属性，建议不要直接访问', '公有属性', '静态属性'],
+                correct: 1,
+                explanation: '单下划线前缀（如 `_name`）是Python的命名约定，表示该属性是内部使用的，建议不要从外部直接访问，但技术上仍然可以访问。双下划线（如 `__name`）会触发名称改写。'
+              },
+              {
+                question: '以下代码的输出结果是什么？\n```python\nclass A:\n    def show(self):\n        return "A"\nclass B(A):\n    def show(self):\n        return "B"\nobj = B()\nprint(obj.show())\n```',
+                options: ['A', 'B', '报错', 'None'],
+                correct: 1,
+                explanation: '类 B 继承自类 A，并重写了 `show` 方法。当调用 `obj.show()` 时，会执行 B 类中的版本，输出 "B"。这是多态（方法重写）的体现。'
+              }
+            ]
           }
         ]
       },
@@ -1352,7 +1512,39 @@ data[mask] = np.nan
             title: '第六章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对NumPy的掌握程度。</p>`
+            content: `<p>测试你对NumPy的掌握程度。</p>`,
+            questions: [
+              {
+                question: '执行 `np.array([1, 2, 3]) + np.array([4, 5, 6])` 的结果是什么？',
+                options: ['[5, 7, 9]', '[1, 2, 3, 4, 5, 6]', '15', '报错'],
+                correct: 0,
+                explanation: 'NumPy数组支持元素级（element-wise）运算，对应位置的元素相加，结果为 [5, 7, 9]。'
+              },
+              {
+                question: '以下哪个函数可以创建一个 3x3 的单位矩阵？',
+                options: ['np.zeros((3, 3))', 'np.ones((3, 3))', 'np.eye(3)', 'np.full((3, 3), 1)'],
+                correct: 2,
+                explanation: '`np.eye(n)` 创建 n×n 的单位矩阵（对角线为1，其余为0）。`np.zeros` 创建全0矩阵，`np.ones` 创建全1矩阵，`np.full` 创建指定值的矩阵。'
+              },
+              {
+                question: '执行 `np.arange(0, 10, 3)` 的结果是什么？',
+                options: ['[0, 3, 6, 9]', '[0, 3, 6, 9, 12]', '[3, 6, 9]', '[0, 3, 6]'],
+                correct: 0,
+                explanation: '`np.arange(0, 10, 3)` 从 0 开始，步长为 3，到小于 10 为止，结果是 [0, 3, 6, 9]。注意 stop 值 10 是不包含的。'
+              },
+              {
+                question: '以下代码的输出结果是什么？\n```python\narr = np.array([10, 20, 30, 40, 50])\nprint(arr[1:4])\n```',
+                options: ['[10, 20, 30]', '[20, 30, 40]', '[20, 30, 40, 50]', '[10, 20, 30, 40]'],
+                correct: 1,
+                explanation: 'NumPy数组切片 `arr[1:4]` 取索引 1（含）到索引 4（不含）的元素，即 [20, 30, 40]。'
+              },
+              {
+                question: '执行 `np.mean(np.array([10, 20, 30, 40]))` 的结果是什么？',
+                options: ['20', '25', '100', '30'],
+                correct: 1,
+                explanation: '`np.mean()` 计算数组的算术平均值。(10 + 20 + 30 + 40) / 4 = 100 / 4 = 25。'
+              }
+            ]
           }
         ]
       },
@@ -1449,7 +1641,39 @@ for i in range(n_orders):
             title: '第七章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对Python数据分析基础全课程的掌握程度。</p>`
+            content: `<p>测试你对Python数据分析基础全课程的掌握程度。</p>`,
+            questions: [
+              {
+                question: '以下关于NumPy广播（Broadcasting）的说法，正确的是？',
+                options: ['广播要求两个数组形状完全相同', '广播允许不同形状的数组进行运算', '广播只适用于一维数组', '广播会自动修改原数组的形状'],
+                correct: 1,
+                explanation: 'NumPy广播机制允许不同形状的数组进行元素级运算。当数组维度不匹配时，NumPy会自动扩展较小的数组，使其与较大的数组兼容。'
+              },
+              {
+                question: '执行以下代码后，`result` 的值是什么？\n```python\nimport numpy as np\narr = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])\nresult = arr[0:2, 1:3]\n```',
+                options: ['[[1, 2], [4, 5]]', '[[2, 3], [5, 6]]', '[[4, 5], [7, 8]]', '[[1, 2, 3], [4, 5, 6]]'],
+                correct: 1,
+                explanation: '`arr[0:2, 1:3]` 取第 0-1 行（不含第2行），第 1-2 列（不含第3列），即 [[2, 3], [5, 6]]。'
+              },
+              {
+                question: '以下代码的输出结果是什么？\n```python\nimport numpy as np\ndata = np.array([23, 45, 12, 67, 34, 89, 56, 78])\nprint(data[data > 50])\n```',
+                options: ['[23, 45, 12, 34]', '[67, 89, 56, 78]', '[23, 45, 67, 89]', '报错'],
+                correct: 1,
+                explanation: '布尔索引 `data[data > 50]` 会筛选出数组中大于 50 的元素。原数组中大于 50 的元素是 67, 89, 56, 78。'
+              },
+              {
+                question: '执行 `np.linspace(0, 1, 5)` 的结果是什么？',
+                options: ['[0, 0.2, 0.4, 0.6, 0.8]', '[0, 0.25, 0.5, 0.75, 1.0]', '[0, 1, 2, 3, 4]', '[0.0, 0.2, 0.4, 0.6, 0.8, 1.0]'],
+                correct: 1,
+                explanation: '`np.linspace(0, 1, 5)` 在 0 到 1 之间（包含两端）均匀生成 5 个数，结果是 [0.0, 0.25, 0.5, 0.75, 1.0]。与 `np.arange` 不同，linspace 包含 stop 值。'
+              },
+              {
+                question: '以下关于NumPy数组切片的说法，正确的是？',
+                options: ['切片总是返回数组的副本', '切片返回的是原数组的视图（view）', '切片会修改原数组的数据类型', '切片只能用于一维数组'],
+                correct: 1,
+                explanation: 'NumPy数组切片返回的是原数组的视图（view），修改切片会影响原数组。如果需要副本，应使用 `.copy()` 方法。布尔索引则返回副本。'
+              }
+            ]
           }
         ]
       }
@@ -1739,7 +1963,39 @@ import numpy as np
             title: '第一章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对Pandas入门知识的掌握程度。</p>`
+            content: `<p>测试你对Pandas入门知识的掌握程度。</p>`,
+            questions: [
+              {
+                question: 'Pandas库的名字来源于什么？',
+                options: ['Python Data Analysis', 'Panel Data（面板数据）', 'Panda（熊猫）', 'Parallel Data'],
+                correct: 1,
+                explanation: 'Pandas的名字来源于"Panel Data"（面板数据）的缩写，由Wes McKinney于2008年开发。'
+              },
+              {
+                question: '以下哪个数据结构是Pandas中的一维带标签数组？',
+                options: ['DataFrame', 'Series', 'NumPy ndarray', 'List'],
+                correct: 1,
+                explanation: 'Series是Pandas中的一维数据结构，类似于NumPy数组但带有标签索引，是DataFrame的基础构建块。'
+              },
+              {
+                question: '创建Series时，以下哪种方式可以将字典的键作为索引？',
+                options: ['pd.Series([1, 2, 3])', 'pd.Series({"a": 1, "b": 2})', 'pd.Series((1, 2, 3))', 'pd.Series("abc")'],
+                correct: 1,
+                explanation: '从字典创建Series时，字典的键会自动作为Series的索引，值作为数据。'
+              },
+              {
+                question: 'Series进行算术运算时，索引不匹配的位置会产生什么？',
+                options: ['0', '报错', 'NaN', '自动忽略'],
+                correct: 2,
+                explanation: 'Series运算时会自动按索引对齐，未匹配的位置产生NaN。可以使用.add()等方法的fill_value参数指定默认填充值。'
+              },
+              {
+                question: '以下哪个方法可以查看Series的描述性统计信息？',
+                options: ['s.info()', 's.describe()', 's.summary()', 's.stats()'],
+                correct: 1,
+                explanation: 'describe()方法返回Series的计数、均值、标准差、最小值、四分位数和最大值等描述性统计信息。'
+              }
+            ]
           }
         ]
       },
@@ -1909,7 +2165,39 @@ df = pd.DataFrame({
             title: '第二章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对数据选择与过滤的掌握程度。</p>`
+            content: `<p>测试你对数据选择与过滤的掌握程度。</p>`,
+            questions: [
+              {
+                question: '以下哪种方式可以从DataFrame中选择多列并返回DataFrame？',
+                options: ['df["name"]', 'df[["name", "age"]]', 'df.loc[:, "name"]', 'df.iloc[:, 0]'],
+                correct: 1,
+                explanation: 'df[["name", "age"]]通过传递列名列表选择多列，返回DataFrame。单列选择返回Series。'
+              },
+              {
+                question: 'df.loc[0:2, "name":"salary"]的切片结果包含哪些行？',
+                options: ['第0行和第1行（不包含第2行）', '第0、1、2行（包含两端）', '第1、2行', '报错'],
+                correct: 1,
+                explanation: 'loc使用标签切片，包含两端。iloc使用位置切片，不包含结束位置。'
+              },
+              {
+                question: '以下哪个方法可以根据多个条件组合筛选数据？',
+                options: ['df.filter()', 'df.query() 或 (& | ~) 组合', 'df.select()', 'df.where()'],
+                correct: 1,
+                explanation: 'query()方法使用字符串表达式筛选数据，也可以使用&（与）、|（或）、~（非）组合多个布尔条件。'
+              },
+              {
+                question: 'df[df["city"].isin(["北京", "上海"])]的作用是什么？',
+                options: ['筛选city列包含"北京"或"上海"子字符串的行', '筛选city列值为"北京"或"上海"的行', '筛选city列以"北京"或"上海"开头的行', '筛选city列不等于"北京"和"上海"的行'],
+                correct: 1,
+                explanation: 'isin()方法用于判断元素是否在指定列表中，返回布尔Series用于筛选精确匹配的行。'
+              },
+              {
+                question: '要获取DataFrame中salary最高的3行，应该使用哪个方法？',
+                options: ['df.sort_values("salary", ascending=False).head(3)', 'df.nlargest(3, "salary")', 'df.max(3, "salary")', 'A和B都可以'],
+                correct: 3,
+                explanation: 'nlargest(3, "salary")是获取Top N的高效方法，与先排序再取head(3)效果相同，但性能更优。'
+              }
+            ]
           }
         ]
       },
@@ -2150,7 +2438,39 @@ df.loc[np.random.choice(100, 5), "department"] = np.nan
             title: '第三章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对数据清洗与预处理的掌握程度。</p>`
+            content: `<p>测试你对数据清洗与预处理的掌握程度。</p>`,
+            questions: [
+              {
+                question: '以下哪个方法可以检测DataFrame中每列的缺失值数量？',
+                options: ['df.isnull()', 'df.isnull().sum()', 'df.notnull()', 'df.dropna()'],
+                correct: 1,
+                explanation: 'df.isnull()返回每个值是否为NaN的布尔DataFrame，再调用.sum()可以统计每列的缺失值数量。'
+              },
+              {
+                question: 'df.dropna(thresh=3)的含义是什么？',
+                options: ['删除所有包含NaN的行', '删除少于3个非NaN值的行', '保留至少3个非NaN值的行', '删除包含3个以上NaN值的行'],
+                correct: 2,
+                explanation: 'thresh参数指定每行至少需要有多少个非NaN值才会被保留，thresh=3表示保留至少3个非NaN值的行。'
+              },
+              {
+                question: '要将字符串列转换为数值类型，同时把无法转换的值变为NaN，应该使用？',
+                options: ['df[col].astype(float)', 'pd.to_numeric(df[col], errors="coerce")', 'df[col].convert_numeric()', 'df[col].to_float()'],
+                correct: 1,
+                explanation: 'pd.to_numeric()的errors="coerce"参数会将无法转换的值变为NaN，是处理混合类型数值列的最佳方式。'
+              },
+              {
+                question: 'df.drop_duplicates(subset=["name"], keep="last")的作用是什么？',
+                options: ['删除所有name重复的行', '保留name重复的第一行，删除其余', '保留name重复的最后一行，删除其余', '仅删除完全重复的行'],
+                correct: 2,
+                explanation: 'subset指定基于哪些列判断重复，keep="last"表示保留重复组中的最后一行，删除其他重复行。'
+              },
+              {
+                question: '以下哪个方法可以将分类列转换为category类型以节省内存？',
+                options: ['df[col].astype("string")', 'df[col].astype("category")', 'df[col].to_category()', 'df[col].optimize()'],
+                correct: 1,
+                explanation: 'astype("category")将列转换为category类型，可以大幅减少重复字符串列的内存占用，适合低基数分类数据。'
+              }
+            ]
           }
         ]
       },
@@ -2346,7 +2666,39 @@ df = pd.DataFrame({
             title: '第四章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对数据聚合与分组的掌握程度。</p>`
+            content: `<p>测试你对数据聚合与分组的掌握程度。</p>`,
+            questions: [
+              {
+                question: 'df.groupby("department")["salary"].mean()的结果是什么类型？',
+                options: ['DataFrame', 'Series', 'NumPy数组', '标量值'],
+                correct: 1,
+                explanation: '对单列进行groupby聚合后返回Series，其索引为分组键（department），值为聚合结果。'
+              },
+              {
+                question: '以下哪个方法可以对分组后的数据执行多种聚合操作？',
+                options: ['groupby().mean()', 'groupby().agg()', 'groupby().apply()', 'groupby().transform()'],
+                correct: 1,
+                explanation: 'agg()方法支持传入多个聚合函数（如["mean", "sum", "count"]），一次性计算多种统计量。'
+              },
+              {
+                question: 'df.groupby("department")["salary"].transform("mean")的作用是什么？',
+                options: ['返回每个部门的平均薪资（每组一个值）', '返回与原DataFrame相同长度的部门平均薪资列', '将salary列替换为部门平均值', '报错'],
+                correct: 1,
+                explanation: 'transform()返回与原DataFrame相同形状的结果，每个位置填充对应组的聚合值，适合添加计算列（如与部门均值比较）。'
+              },
+              {
+                question: 'pd.crosstab(df["gender"], df["department"])主要用于计算什么？',
+                options: ['两个数值列的相关系数', '两个分类变量的频率分布（交叉表）', '两个列的均值差异', '两个列的合并结果'],
+                correct: 1,
+                explanation: 'crosstab()专门用于计算两个（或多个）分类变量的频率分布，生成类似Excel数据透视表的交叉表。'
+              },
+              {
+                question: 'pivot_table中margins=True参数的作用是什么？',
+                options: ['设置边距大小', '添加汇总行和汇总列', '忽略缺失值', '设置数据类型'],
+                correct: 1,
+                explanation: 'margins=True会在透视表的底部和右侧添加汇总行/列（All或自定义名称），方便查看总计信息。'
+              }
+            ]
           }
         ]
       },
@@ -2551,7 +2903,39 @@ scores = pd.DataFrame({
             title: '第五章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对数据合并与连接的掌握程度。</p>`
+            content: `<p>测试你对数据合并与连接的掌握程度。</p>`,
+            questions: [
+              {
+                question: 'pd.merge(df1, df2, on="id", how="left")表示什么连接方式？',
+                options: ['内连接（只保留匹配行）', '左连接（保留左表所有行）', '右连接（保留右表所有行）', '外连接（保留所有行）'],
+                correct: 1,
+                explanation: 'how="left"表示左连接，保留左表（df1）的所有行，右表不匹配的位置填充NaN。'
+              },
+              {
+                question: 'merge和join的主要区别是什么？',
+                options: ['merge只能合并两个表，join可以合并多个', 'merge基于列值连接，join基于索引连接', 'merge是SQL风格，join是Excel风格', '没有区别，功能完全相同'],
+                correct: 1,
+                explanation: 'merge()基于指定的列值进行连接，join()基于DataFrame的索引进行连接，这是两者的核心区别。'
+              },
+              {
+                question: 'pd.concat([df1, df2], axis=0, ignore_index=True)的作用是什么？',
+                options: ['按列横向拼接，并重置列索引', '按行纵向拼接，并重置行索引', '按行纵向拼接，保留原索引', '按列横向拼接，保留原列名'],
+                correct: 1,
+                explanation: 'axis=0表示按行纵向拼接，ignore_index=True会重置行索引为0,1,2...的连续整数。'
+              },
+              {
+                question: '将宽格式数据转为长格式，应该使用哪个方法？',
+                options: ['pivot_table()', 'melt()', 'concat()', 'join()'],
+                correct: 1,
+                explanation: 'melt()将宽格式（多列）转为长格式（行方向堆叠），是数据重塑的常用方法。'
+              },
+              {
+                question: '合并时两个DataFrame有同名列（非连接键），默认如何处理？',
+                options: ['自动删除重复列', '保留两个列，右表列加后缀"_x"，左表列加后缀"_y"', '保留两个列，左表列加后缀"_x"，右表列加后缀"_y"', '报错阻止合并'],
+                correct: 2,
+                explanation: '默认suffixes=("_x", "_y")，左表（第一个参数）的重复列加"_x"，右表（第二个参数）的重复列加"_y"。'
+              }
+            ]
           }
         ]
       },
@@ -2732,7 +3116,39 @@ ts = pd.DataFrame({"sales": sales}, index=dates)
             title: '第六章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对时间序列分析的掌握程度。</p>`
+            content: `<p>测试你对时间序列分析的掌握程度。</p>`,
+            questions: [
+              {
+                question: 'pd.date_range("2024-01", periods=12, freq="M")生成的日期是什么规则？',
+                options: ['每月1日', '每月最后一天', '每月15日', '随机日期'],
+                correct: 1,
+                explanation: 'freq="M"表示月末（Month End），生成的是每个月的最后一天。freq="MS"表示月初（Month Start）。'
+              },
+              {
+                question: 'ts.resample("W").sum()的作用是什么？',
+                options: ['对数据进行周度降采样并求和', '对数据进行周度升采样', '删除周度重复数据', '按周排序数据'],
+                correct: 0,
+                explanation: 'resample("W")将日度数据重采样为周度数据，.sum()对每周的数据进行求和聚合，是降采样操作。'
+              },
+              {
+                question: 'ts["sales"].rolling(window=7).mean()计算的是什么？',
+                options: ['7日移动总和', '7日移动平均', '7日移动标准差', '7日移动最大值'],
+                correct: 1,
+                explanation: 'rolling(window=7)创建7日滑动窗口，.mean()计算窗口内的平均值，即7日移动平均。'
+              },
+              {
+                question: 'ts["sales"].pct_change()计算的是什么指标？',
+                options: ['销售额的百分比', '销售额的日环比变化率', '销售额的累计百分比', '销售额与均值的百分比偏差'],
+                correct: 1,
+                explanation: 'pct_change()计算相邻元素之间的百分比变化率，即（当前值-前值）/ 前值，常用于计算日环比或周环比。'
+              },
+              {
+                question: '设置DatetimeIndex后，ts["2024-01":"2024-03"]的切片方式有什么特点？',
+                options: ['只能精确匹配到日', '可以使用日期字符串直接切片，包含两端', '必须使用iloc进行切片', '只能按月切片'],
+                correct: 1,
+                explanation: 'DatetimeIndex支持使用日期字符串直接切片，且切片包含两端，这是Pandas时间序列最方便的特性之一。'
+              }
+            ]
           }
         ]
       },
@@ -2929,7 +3345,39 @@ orders["amount"] = orders["quantity"] * orders["unit_price"]
             title: '第七章综合测验',
             type: 'quiz',
             duration: 15,
-            content: `<p>测试你对Pandas数据分析全课程的掌握程度。</p>`
+            content: `<p>测试你对Pandas数据分析全课程的掌握程度。</p>`,
+            questions: [
+              {
+                question: 'Pandas的plot()方法默认基于哪个可视化库？',
+                options: ['Seaborn', 'Matplotlib', 'Plotly', 'Bokeh'],
+                correct: 1,
+                explanation: 'Pandas的plot()方法内置基于Matplotlib，适合快速探索性分析。可以直接调用Matplotlib或Seaborn进行更复杂的可视化。'
+              },
+              {
+                question: 'df.plot(x="month", y="sales", kind="bar")创建的是什么图表？',
+                options: ['折线图', '柱状图', '散点图', '直方图'],
+                correct: 1,
+                explanation: 'kind="bar"指定创建柱状图。默认kind="line"为折线图，还有"scatter"（散点图）、"hist"（直方图）、"box"（箱线图）等。'
+              },
+              {
+                question: '导出中文CSV文件时，为避免Excel打开乱码，应使用什么编码？',
+                options: ['utf-8', 'gbk', 'utf-8-sig', 'ascii'],
+                correct: 2,
+                explanation: 'utf-8-sig编码在文件开头添加了BOM（字节顺序标记），Excel打开时能够正确识别为UTF-8编码，避免中文乱码。'
+              },
+              {
+                question: 'Seaborn的heatmap()函数常用于展示什么？',
+                options: ['时间序列趋势', '相关系数矩阵', '数据分布密度', '分类变量计数'],
+                correct: 1,
+                explanation: 'heatmap()常用于可视化相关系数矩阵，通过颜色深浅展示变量之间的相关性强弱，是数据分析中常用的探索性图表。'
+              },
+              {
+                question: '要将多个DataFrame导出到同一个Excel文件的不同Sheet，应该使用？',
+                options: ['df.to_excel()多次调用', 'pd.ExcelWriter', 'pd.concat()后导出', 'df.to_csv()'],
+                correct: 1,
+                explanation: 'pd.ExcelWriter可以创建一个Excel写入器，将多个DataFrame分别写入同一文件的不同Sheet，通过with语句管理资源。'
+              }
+            ]
           }
         ]
       }
@@ -3253,46 +3701,36 @@ with sns.axes_style("darkgrid"):
         title: '数据可视化综合测验',
         type: 'quiz',
         duration: 15,
-        content: [
+        questions: [
           {
-            question: '展示数据随时间变化的趋势，最适合使用哪种图表？',
-            options: ['柱状图', '折线图', '饼图', '散点图'],
+            question: '在Matplotlib中，使用面向对象方式创建图表时，fig和ax分别代表什么？',
+            options: ['fig是文件对象，ax是坐标轴对象', 'fig是整个画布（Figure），ax是子图（Axes）', 'fig是图形格式，ax是数据数组', 'fig是文件名，ax是x轴标签'],
             correct: 1,
-            explanation: '折线图最适合展示数据随时间变化的趋势，因为它能够清晰地呈现数据的上升、下降和波动情况。折线图通过连接各个数据点，使趋势一目了然。'
+            explanation: 'fig代表整个画布（Figure），是最外层的容器；ax代表子图（Axes），是实际的绘图区域。通过fig, ax = plt.subplots()可以获取这两个对象。'
           },
           {
-            question: '在Matplotlib中，plt.subplots(2, 3) 会创建什么样的布局？',
-            options: ['2行3列共6个子图', '3行2列共6个子图', '2行3列共5个子图', '2个主图和3个子图'],
-            correct: 0,
-            explanation: 'plt.subplots(2, 3) 的第一个参数是行数，第二个参数是列数，因此创建的是2行3列共6个子图的布局。返回值是一个Figure对象和一个2x3的Axes数组。'
-          },
-          {
-            question: '以下哪种图表最适合展示各部分占整体的比例？',
-            options: ['柱状图', '折线图', '饼图', '散点图'],
-            correct: 2,
-            explanation: '饼图最适合展示各部分占整体的比例关系。饼图将一个圆划分为多个扇形，每个扇形的大小与其所代表的比例成正比，能够直观地展示各部分的占比情况。'
-          },
-          {
-            question: 'Seaborn相比Matplotlib的主要优势是什么？',
-            options: [
-              '绘图速度更快',
-              '默认样式更美观，统计图表API更简洁',
-              '支持更多图表类型',
-              '不需要安装其他依赖'
-            ],
+            question: '以下哪个Seaborn函数最适合绘制带回归线的散点图？',
+            options: ['sns.scatterplot()', 'sns.regplot()', 'sns.lineplot()', 'sns.pointplot()'],
             correct: 1,
-            explanation: 'Seaborn的主要优势在于提供更美观的默认样式和更简洁的统计图表API。它基于Matplotlib构建，专门针对统计可视化进行了优化，能够用更少的代码创建更专业的统计图表。'
+            explanation: 'sns.regplot()用于绘制散点图并自动拟合一条回归线，非常适合展示两个连续变量之间的关系和趋势。'
           },
           {
-            question: '箱线图（Box Plot）中，箱体表示的是什么？',
-            options: [
-              '数据的平均值和标准差范围',
-              '数据的最小值和最大值范围',
-              '数据的四分位距（IQR）',
-              '数据的95%置信区间'
-            ],
+            question: '在Matplotlib中，如何设置中文字体以避免中文显示为方框？',
+            options: ['plt.use_chinese(True)', 'plt.rcParams["font.sans-serif"] = ["SimHei"]', 'import matplotlib.chinese', 'plt.set_language("zh")'],
+            correct: 1,
+            explanation: '通过修改plt.rcParams["font.sans-serif"]来指定中文字体（如SimHei），同时设置plt.rcParams["axes.unicode_minus"] = False解决负号显示问题。'
+          },
+          {
+            question: 'Seaborn的sns.heatmap()函数中，哪个参数用于在每个单元格中显示数值？',
+            options: ['show_values=True', 'annot=True', 'display=True', 'text=True'],
+            correct: 1,
+            explanation: 'annot=True参数会在热力图的每个单元格中显示对应的数值，方便直观读取数据大小。'
+          },
+          {
+            question: '以下哪种图表最适合比较多个类别的数据分布，同时展示中位数、四分位数和异常值？',
+            options: ['柱状图', '折线图', '箱线图（Box Plot）', '饼图'],
             correct: 2,
-            explanation: '箱线图的箱体表示数据的四分位距（IQR），即从第一四分位数（Q1，25%位置）到第三四分位数（Q3，75%位置）的范围。箱体中间的线代表中位数（Q2，50%位置）。'
+            explanation: '箱线图（Box Plot）能够同时展示数据的中位数、四分位数、 whisker范围以及异常值，非常适合比较多个类别的数据分布情况。'
           }
         ]
       }
@@ -4079,6 +4517,44 @@ print("=" * 60)`,
         ],
         testCases: [
           { input: '', expected: '电商年度数据分析报告' }
+        ]
+      },
+      {
+        id: 'business-project-05',
+        title: '用户行为分析综合测验',
+        type: 'quiz',
+        duration: 15,
+        questions: [
+          {
+            question: 'RFM模型中的"R"代表什么含义？',
+            options: ['消费总额（Revenue）', '最近购买时间（Recency）', '购买频率（Rate）', '客户评分（Rating）'],
+            correct: 1,
+            explanation: 'RFM模型中，R代表Recency（最近购买时间），指客户最近一次购买距今的天数，数值越小表示客户越活跃。'
+          },
+          {
+            question: '在漏斗分析中，如果某一步的转化率明显低于其他步骤，这通常说明什么？',
+            options: ['该步骤的用户体验可能存在问题', '该步骤的广告投放效果最好', '该步骤的用户质量最高', '该步骤的产品价格最有竞争力'],
+            correct: 0,
+            explanation: '漏斗分析中，转化率明显偏低的步骤通常是用户流失的关键节点，可能意味着该步骤的用户体验、流程设计或产品功能存在问题，需要重点优化。'
+          },
+          {
+            question: '留存分析中，"次日留存率"的计算公式是什么？',
+            options: ['次日活跃用户数 / 当日新增用户数', '次日新增用户数 / 当日活跃用户数', '次日活跃用户数 / 总注册用户数', '次日回流用户数 / 当日流失用户数'],
+            correct: 0,
+            explanation: '次日留存率 = 次日活跃用户数 / 当日新增用户数。它衡量的是当天新增的用户中有多少在第二天仍然活跃，是评估产品初期吸引力的重要指标。'
+          },
+          {
+            question: 'RFM模型中，对R（最近购买时间）进行分箱评分时，以下哪种做法是正确的？',
+            options: ['最近购买天数越少，评分越低', '最近购买天数越少，评分越高', '购买金额越大，R评分越高', '购买频率越高，R评分越高'],
+            correct: 1,
+            explanation: 'R（Recency）表示最近购买时间，天数越少说明客户越活跃、价值越高，因此评分应该越高。F和M则是数值越大评分越高。'
+          },
+          {
+            question: '路径分析（Path Analysis）主要用于解决什么问题？',
+            options: ['预测用户未来的购买金额', '分析用户在产品中的行为流转路径，发现流失节点', '计算用户的生命周期总价值', '评估广告投放的ROI'],
+            correct: 1,
+            explanation: '路径分析通过追踪用户在产品中的行为序列，分析用户从进入产品到完成目标（或流失）的路径，帮助发现用户流失的关键节点和优化机会。'
+          }
         ]
       }
     ]
