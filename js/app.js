@@ -1609,6 +1609,12 @@ function renderChapterLessons(course, chapterIdx) {
   });
   var chTotal = chapter.lessons.length;
 
+  // 获取第一个理论课时的内容作为章节介绍
+  var firstTheory = chapter.lessons.find(function(l) { return l.type === 'theory'; }) || chapter.lessons[0];
+  var chapterIntro = firstTheory && firstTheory.content 
+    ? firstTheory.content.replace(/<[^>]+>/g, '').substring(0, 300) + '...'
+    : '';
+
   return `
     <div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
@@ -1616,6 +1622,7 @@ function renderChapterLessons(course, chapterIdx) {
         <h2 style="margin:0;font-size:20px;">${escapeHtml(chapter.title)}</h2>
         <span style="color:var(--text-secondary);font-size:14px;">已完成 ${chCompleted}/${chTotal}</span>
       </div>
+      ${chapterIntro ? `<div style="margin-bottom:24px;padding:16px;background:var(--bg-secondary);border-radius:8px;color:var(--text-secondary);line-height:1.6;">${escapeHtml(chapterIntro)}</div>` : ''}
       <div style="display:grid;gap:12px;">
         ${chapter.lessons.map(function(lesson) {
           var isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
@@ -1640,29 +1647,19 @@ function renderChapterLessons(course, chapterIdx) {
 function renderSidebarSections(course) {
   if (!course.lessons || course.lessons.length === 0) return '';
 
-  // 如果有章节结构，按章节分组
+  // 如果有章节结构，左边只显示章节标题（简洁）
   if (course.chapters && course.chapters.length > 0) {
     let html = '';
-    course.chapters.forEach(chapter => {
+    course.chapters.forEach((chapter, idx) => {
       if (!chapter.lessons || chapter.lessons.length === 0) return;
+      var chCompleted = chapter.lessons.filter(l => store.progress[l.id] && store.progress[l.id].status === 'completed').length;
       html += `
         <div class="course-sidebar__section">
-          <div class="course-sidebar__section-title">📖 ${escapeHtml(chapter.title)}</div>
-          ${chapter.lessons.map(lesson => {
-            const isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
-            const isActive = store.currentLesson && store.currentLesson.id === lesson.id;
-            let itemClass = 'course-sidebar__item';
-            if (isActive) itemClass += ' course-sidebar__item--active';
-            if (isCompleted) itemClass += ' course-sidebar__item--completed';
-
-            return `
-              <div class="${itemClass}" data-action="select-lesson" data-course-id="${course.id}" data-lesson-id="${lesson.id}">
-                <span class="course-sidebar__item-icon">${getLessonTypeIcon(lesson.type)}</span>
-                <span class="course-sidebar__item-text">${escapeHtml(lesson.title)}</span>
-                <span class="course-sidebar__item-duration">${lesson.duration || 0}分钟</span>
-              </div>
-            `;
-          }).join('')}
+          <div class="course-sidebar__item" data-action="select-chapter" data-course-id="${course.id}" data-chapter-idx="${idx}" style="cursor:pointer;font-weight:500;">
+            <span class="course-sidebar__item-icon">📖</span>
+            <span class="course-sidebar__item-text">${escapeHtml(chapter.title)}</span>
+            <span class="course-sidebar__item-duration" style="color:var(--text-tertiary);">${chCompleted}/${chapter.lessons.length}</span>
+          </div>
         </div>
       `;
     });
