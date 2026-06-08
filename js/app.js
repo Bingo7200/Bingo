@@ -398,13 +398,17 @@ sys.stderr = sys.__stderr__
 // 7. 主题管理
 // ============================================================
 function loadTheme() {
-  const saved = localStorage.getItem('datalearn_theme');
-  if (saved) {
-    store.theme = saved;
-  } else {
-    store.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // 如果 loadPersistedState 已经恢复了 theme，直接使用
+  if (!store.theme) {
+    const saved = localStorage.getItem('datalearn_theme');
+    if (saved) {
+      store.theme = saved;
+    } else {
+      store.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
   }
   applyTheme(store.theme);
+  updateThemeToggle();
 }
 
 function applyTheme(theme) {
@@ -1525,14 +1529,111 @@ function renderCourseDetail(courseId) {
               <span class="course-content__meta-item">${course.lessons.length} 课时</span>
               <span class="course-content__meta-item">${formatDuration(course.lessons ? course.lessons.reduce((s, l) => s + (l.duration || 0), 0) : 0)}</span>
             </p>
-            <div class="course-content__body">
-              <p>${escapeHtml(course.description)}</p>
-              <p style="margin-top:16px;color:var(--text-secondary);">请从左侧课时列表中选择一个课时开始学习。</p>
+            <div class="course-content__body" id="course-chapters-overview">
+              ${renderCourseChaptersOverview(course)}
             </div>
           </div>
         </div>
       </div>
     </section>
+  `;
+}
+
+function renderCourseChaptersOverview(course) {
+  if (!course.chapters || course.chapters.length === 0) {
+    // 无章节结构的课程，直接显示课时列表
+    if (!course.lessons || course.lessons.length === 0) {
+      return '<p style="color:var(--text-secondary);">暂无课时内容</p>';
+    }
+    return `
+      <div style="display:grid;gap:12px;">
+        ${course.lessons.map(function(lesson) {
+          var isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
+          return `
+            <div class="chapter-card" data-action="select-lesson" data-course-id="${course.id}" data-lesson-id="${lesson.id}" style="cursor:pointer;padding:16px;border:1px solid var(--border-color);border-radius:8px;transition:all 0.2s;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:24px;">${getLessonTypeIcon(lesson.type)}</span>
+                <div style="flex:1;">
+                  <div style="font-weight:500;">${escapeHtml(lesson.title)}</div>
+                  <div style="font-size:13px;color:var(--text-secondary);">${lesson.duration || 0}分钟 · ${getLessonTypeLabel(lesson.type)}</div>
+                </div>
+                ${isCompleted ? '<span style="color:var(--color-success);">✓</span>' : '<span style="color:var(--text-tertiary);">→</span>'}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // 有章节结构的课程，显示章节卡片
+  return `
+    <p style="margin-bottom:20px;color:var(--text-secondary);">${escapeHtml(course.description)}</p>
+    <div style="display:grid;gap:16px;">
+      ${course.chapters.map(function(chapter, idx) {
+        var chCompleted = 0;
+        var chTotal = chapter.lessons ? chapter.lessons.length : 0;
+        if (chapter.lessons) {
+          chapter.lessons.forEach(function(l) {
+            if (store.progress[l.id] && store.progress[l.id].status === 'completed') chCompleted++;
+          });
+        }
+        var chProgress = chTotal > 0 ? Math.round((chCompleted / chTotal) * 100) : 0;
+        return `
+          <div class="chapter-card" data-action="select-chapter" data-course-id="${course.id}" data-chapter-idx="${idx}" style="cursor:pointer;padding:20px;border:1px solid var(--border-color);border-radius:12px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
+            <div style="display:flex;align-items:center;gap:16px;">
+              <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--color-primary),var(--color-accent));display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:bold;">${idx + 1}</div>
+              <div style="flex:1;">
+                <div style="font-weight:600;font-size:16px;margin-bottom:4px;">${escapeHtml(chapter.title)}</div>
+                <div style="font-size:13px;color:var(--text-secondary);">${chTotal} 课时 · 已完成 ${chCompleted}/${chTotal}</div>
+                <div style="margin-top:8px;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;">
+                  <div style="height:100%;width:${chProgress}%;background:var(--color-primary);border-radius:2px;transition:width 0.3s;"></div>
+                </div>
+              </div>
+              <span style="color:var(--text-tertiary);font-size:18px;">→</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderChapterLessons(course, chapterIdx) {
+  var chapter = course.chapters[chapterIdx];
+  if (!chapter || !chapter.lessons) return '';
+
+  var chCompleted = 0;
+  chapter.lessons.forEach(function(l) {
+    if (store.progress[l.id] && store.progress[l.id].status === 'completed') chCompleted++;
+  });
+  var chTotal = chapter.lessons.length;
+
+  return `
+    <div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <button class="btn btn--sm btn--outline" data-action="back-to-chapters" data-course-id="${course.id}">← 返回章节</button>
+        <h2 style="margin:0;font-size:20px;">${escapeHtml(chapter.title)}</h2>
+        <span style="color:var(--text-secondary);font-size:14px;">已完成 ${chCompleted}/${chTotal}</span>
+      </div>
+      <div style="display:grid;gap:12px;">
+        ${chapter.lessons.map(function(lesson) {
+          var isCompleted = store.progress[lesson.id] && store.progress[lesson.id].status === 'completed';
+          return `
+            <div class="chapter-card" data-action="select-lesson" data-course-id="${course.id}" data-lesson-id="${lesson.id}" style="cursor:pointer;padding:16px;border:1px solid var(--border-color);border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:24px;">${getLessonTypeIcon(lesson.type)}</span>
+                <div style="flex:1;">
+                  <div style="font-weight:500;">${escapeHtml(lesson.title)}</div>
+                  <div style="font-size:13px;color:var(--text-secondary);">${lesson.duration || 0}分钟 · ${getLessonTypeLabel(lesson.type)}</div>
+                </div>
+                ${isCompleted ? '<span style="color:var(--color-success);">✓</span>' : '<span style="color:var(--text-tertiary);">→</span>'}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
   `;
 }
 
@@ -2310,9 +2411,16 @@ function renderGamePage(gameType) {
   // 收集所有测验题目作为游戏题库
   const allQuestions = [];
   (COURSES_DATA || []).forEach(course => {
-    course.lessons.forEach(lesson => {
+    // 有些课程使用 chapters > lessons 结构，有些直接使用 lessons
+    var lessons = course.lessons || [];
+    if (course.chapters) {
+      course.chapters.forEach(function(ch) {
+        if (ch.lessons) lessons = lessons.concat(ch.lessons);
+      });
+    }
+    lessons.forEach(function(lesson) {
       if (lesson.type === 'quiz' && lesson.questions) {
-        lesson.questions.forEach(q => {
+        lesson.questions.forEach(function(q) {
           allQuestions.push({
             question: q.question,
             options: q.options,
@@ -2449,6 +2557,7 @@ function handleGlobalClick(e) {
     }
 
     case 'login': {
+      e.preventDefault();
       const username = document.getElementById('auth-username');
       const password = document.getElementById('auth-password');
       if (username && password) {
@@ -2458,6 +2567,7 @@ function handleGlobalClick(e) {
     }
 
     case 'register': {
+      e.preventDefault();
       const username = document.getElementById('auth-username');
       const nickname = document.getElementById('auth-nickname');
       const password = document.getElementById('auth-password');
@@ -2529,6 +2639,31 @@ function handleGlobalClick(e) {
       const lessonId = target.getAttribute('data-lesson-id');
       if (courseId && lessonId) {
         navigateTo(`#/lesson/${courseId}/${lessonId}`);
+      }
+      break;
+    }
+
+    case 'select-chapter': {
+      const courseId = target.getAttribute('data-course-id');
+      const chapterIdx = parseInt(target.getAttribute('data-chapter-idx'), 10);
+      if (courseId && !isNaN(chapterIdx)) {
+        const course = (COURSES_DATA || []).find(c => c.id === courseId);
+        if (course) {
+          const overview = document.getElementById('course-chapters-overview');
+          if (overview) overview.innerHTML = renderChapterLessons(course, chapterIdx);
+        }
+      }
+      break;
+    }
+
+    case 'back-to-chapters': {
+      const courseId = target.getAttribute('data-course-id');
+      if (courseId) {
+        const course = (COURSES_DATA || []).find(c => c.id === courseId);
+        if (course) {
+          const overview = document.getElementById('course-chapters-overview');
+          if (overview) overview.innerHTML = renderCourseChaptersOverview(course);
+        }
       }
       break;
     }
