@@ -222,7 +222,12 @@ function getUniqueCoursesLearned() {
     if (store.progress[lessonId].status === 'completed') {
       if (COURSES_DATA) {
         COURSES_DATA.forEach(course => {
-          if (course.lessons.find(l => l.id === lessonId)) {
+          var allLessons = course.lessons;
+          if (!allLessons && course.chapters) {
+            allLessons = [];
+            course.chapters.forEach(function(ch) { if (ch.lessons) allLessons = allLessons.concat(ch.lessons); });
+          }
+          if (allLessons && allLessons.find(l => l.id === lessonId)) {
             courseIds.add(course.id);
           }
         });
@@ -1271,7 +1276,7 @@ function renderCourseDetail(courseId) {
   if (course._flatLessons) course.lessons = course._flatLessons;
 
   const progress = getCourseProgress(course.id);
-  const completedCount = course.lessons.filter(l => store.progress[l.id] && store.progress[l.id].status === 'completed').length;
+  const completedCount = course.lessons ? course.lessons.filter(l => store.progress[l.id] && store.progress[l.id].status === 'completed').length : 0;
 
   main.innerHTML = `
     <section class="section">
@@ -1418,7 +1423,15 @@ function renderLesson(courseId, lessonId) {
     return;
   }
 
-  const lesson = course.lessons.find(l => l.id === lessonId);
+  // 展平chapters到lessons
+  var allLessons = course.lessons;
+  if (!allLessons && course.chapters) {
+    allLessons = [];
+    course.chapters.forEach(function(ch) { if (ch.lessons) allLessons = allLessons.concat(ch.lessons); });
+    course.lessons = allLessons;
+  }
+
+  const lesson = allLessons.find(l => l.id === lessonId);
   if (!lesson) {
     main.innerHTML = `
       <section class="section">
